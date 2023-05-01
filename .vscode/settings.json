@@ -1,0 +1,7 @@
+{
+    "kconfig.zephyr.board": {
+        "board": "raytac_mdbt50q_db_40_nrf52840",
+        "arch": "arm",
+        "dir": "/home/zephyr/zephyrproject/zephyr/boards/arm/raytac_mdbt50q_db_40_nrf52840"
+    }
+}
