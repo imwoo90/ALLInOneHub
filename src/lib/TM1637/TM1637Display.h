@@ -17,6 +17,10 @@
 #ifndef __TM1637DISPLAY__
 #define __TM1637DISPLAY__
 
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/i2c.h>
+
 #include <inttypes.h>
 
 #define SEG_A   0b00000001
@@ -35,11 +39,8 @@ public:
   //! Initialize a TM1637Display object, setting the clock and
   //! data pins.
   //!
-  //! @param pinClk - The number of the digital pin connected to the clock pin of the module
-  //! @param pinDIO - The number of the digital pin connected to the DIO pin of the module
-  //! @param bitDelay - The delay, in microseconds, between bit transition on the serial
-  //!                   bus connected to the display
-  TM1637Display(uint8_t pinClk, uint8_t pinDIO, unsigned int bitDelay = DEFAULT_BIT_DELAY);
+  //! @param _i2c_dev - i2c device of zephyr
+  TM1637Display(const struct device *_i2c_dev);
 
   //! Sets the brightness of the display.
   //!
@@ -142,24 +143,26 @@ public:
   uint8_t encodeDigit(uint8_t digit);
 
 protected:
-   void bitDelay();
+  //  void bitDelay();
 
-   void start();
+  //  void start();
 
-   void stop();
+  //  void stop();
 
-   bool writeByte(uint8_t b);
+  //  bool writeByte(uint8_t b);
 
    void showDots(uint8_t dots, uint8_t* digits);
    
    void showNumberBaseEx(int8_t base, uint16_t num, uint8_t dots = 0, bool leading_zero = false, uint8_t length = 4, uint8_t pos = 0);
 
+   int transferPacket(int8_t command, uint8_t *buf = NULL, uint32_t num_bytes = 0);
 
 private:
-	uint8_t m_pinClk;
-	uint8_t m_pinDIO;
+	// uint8_t m_pinClk;
+	// uint8_t m_pinDIO;
 	uint8_t m_brightness;
-	unsigned int m_bitDelay;
+	// unsigned int m_bitDelay;
+  const struct device *i2c_dev;
 };
 
 #endif // __TM1637DISPLAY__
