@@ -5,4 +5,4 @@ find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(AllinOneHub)
 
 target_sources(app PRIVATE src/main.cpp)
-add_subdirectory(src/lib)
+add_subdirectory(lib)
