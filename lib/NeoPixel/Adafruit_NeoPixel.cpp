@@ -55,6 +55,10 @@
 // Interrupt is only disabled if there is no PWM device available
 // Note: Adafruit Bluefruit nrf52 does not use this option
 //#define NRF52_DISABLE_INT
+#include <zephyr/drivers/gpio.h>
+#include <string.h>
+#include <ctype.h>
+static const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 #endif
 
 #if defined(ARDUINO_ARCH_NRF52840)
@@ -77,8 +81,9 @@
               pixel.
   @return  Adafruit_NeoPixel object. Call the begin() function before use.
 */
-Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
+Adafruit_NeoPixel::Adafruit_NeoPixel(const struct device * _port, uint16_t n, int16_t p, neoPixelType t)
     : begun(false), brightness(0), pixels(NULL), endTime(0) {
+  port = _port;
   updateType(t);
   updateLength(n);
   setPin(p);
@@ -104,22 +109,25 @@ Adafruit_NeoPixel::Adafruit_NeoPixel(uint16_t n, int16_t p, neoPixelType t)
            'new' keyword with the first constructor syntax (length, pin,
            type).
 */
-Adafruit_NeoPixel::Adafruit_NeoPixel()
+Adafruit_NeoPixel::Adafruit_NeoPixel(const struct device * _port)
     :
 #if defined(NEO_KHZ400)
       is800KHz(true),
 #endif
       begun(false), numLEDs(0), numBytes(0), pin(-1), brightness(0),
       pixels(NULL), rOffset(1), gOffset(0), bOffset(2), wOffset(1), endTime(0) {
+  port = _port;
 }
 
 /*!
   @brief   Deallocate Adafruit_NeoPixel object, set data pin back to INPUT.
 */
 Adafruit_NeoPixel::~Adafruit_NeoPixel() {
-  free(pixels);
+  // free(pixels);
+  k_free(pixels);
   if (pin >= 0)
-    pinMode(pin, INPUT);
+    // pinMode(pin, INPUT);
+    gpio_pin_configure(port, pin, GPIO_INPUT);
 }
 
 /*!
@@ -127,8 +135,10 @@ Adafruit_NeoPixel::~Adafruit_NeoPixel() {
 */
 void Adafruit_NeoPixel::begin(void) {
   if (pin >= 0) {
-    pinMode(pin, OUTPUT);
-    digitalWrite(pin, LOW);
+    // pinMode(pin, OUTPUT);
+    gpio_pin_configure(port, pin, GPIO_OUTPUT);
+    // digitalWrite(pin, LOW);
+    gpio_pin_set(port, pin, 0);
   }
   begun = true;
 }
@@ -144,11 +154,12 @@ void Adafruit_NeoPixel::begin(void) {
            type).
 */
 void Adafruit_NeoPixel::updateLength(uint16_t n) {
-  free(pixels); // Free existing data (if any)
+  // free(pixels); // Free existing data (if any)
+  k_free(pixels);
 
   // Allocate new data -- note: ALL PIXELS ARE CLEARED
   numBytes = n * ((wOffset == rOffset) ? 3 : 4);
-  if ((pixels = (uint8_t *)malloc(numBytes))) {
+  if ((pixels = (uint8_t *)k_malloc(numBytes))) {
     memset(pixels, 0, numBytes);
     numLEDs = n;
   } else {
@@ -2052,7 +2063,7 @@ void Adafruit_NeoPixel::show(void) {
 #if defined(ARDUINO_NRF52_ADAFRUIT) // use thread-safe malloc
     pixels_pattern = (uint16_t *)rtos_malloc(pattern_size);
 #else
-    pixels_pattern = (uint16_t *)malloc(pattern_size);
+    pixels_pattern = (uint16_t *)k_malloc(pattern_size);
 #endif
   }
 
@@ -2132,7 +2143,7 @@ void Adafruit_NeoPixel::show(void) {
 #if defined(ARDUINO_ARCH_NRF52840)
     pwm->PSEL.OUT[0] = g_APinDescription[pin].name;
 #else
-    pwm->PSEL.OUT[0] = g_ADigitalPinMap[pin];
+    pwm->PSEL.OUT[0] = pin;
 #endif
 
     // Enable the PWM
@@ -2164,7 +2175,7 @@ void Adafruit_NeoPixel::show(void) {
 #if defined(ARDUINO_NRF52_ADAFRUIT) // use thread-safe free
     rtos_free(pixels_pattern);
 #else
-    free(pixels_pattern);
+    k_free(pixels_pattern);
 #endif
   } // End of DMA implementation
   // ---------------------------------------------------------------------
@@ -2184,8 +2195,10 @@ void Adafruit_NeoPixel::show(void) {
     __disable_irq();
 #endif
 
-    NRF_GPIO_Type *nrf_port = (NRF_GPIO_Type *)digitalPinToPort(pin);
-    uint32_t pinMask = digitalPinToBitMask(pin);
+    // NRF_GPIO_Type *nrf_port = (NRF_GPIO_Type *)digitalPinToPort(pin);
+    NRF_GPIO_Type *nrf_port = ((gpio0 == port) ? NRF_P0 : NRF_P1);
+    // uint32_t pinMask = digitalPinToBitMask(pin);
+    uint32_t pinMask = (1 << pin);
 
     uint32_t CYCLES_X00 = CYCLES_800;
     uint32_t CYCLES_X00_T1H = CYCLES_800_T1H;
@@ -2241,7 +2254,8 @@ void Adafruit_NeoPixel::show(void) {
       }
 
       // re-send need 300us delay
-      delayMicroseconds(300);
+      // delayMicroseconds(300);
+      k_usleep(300);
     }
 
 // Enable interrupts again
@@ -3036,7 +3050,8 @@ if(is800KHz) {
   interrupts();
 #endif
 
-  endTime = micros(); // Save EOD time for latch on next call
+  // endTime = micros(); // Save EOD time for latch on next call
+  endTime = k_uptime_get_32();
 }
 
 /*!
@@ -3046,11 +3061,14 @@ if(is800KHz) {
 */
 void Adafruit_NeoPixel::setPin(int16_t p) {
   if (begun && (pin >= 0))
-    pinMode(pin, INPUT); // Disable existing out pin
+    // pinMode(pin, INPUT); // Disable existing out pin
+    gpio_pin_configure(port, pin, GPIO_INPUT);
   pin = p;
   if (begun) {
-    pinMode(p, OUTPUT);
-    digitalWrite(p, LOW);
+    // pinMode(p, OUTPUT);
+    gpio_pin_configure(port, p, GPIO_OUTPUT);
+    // digitalWrite(p, LOW);
+    gpio_pin_set(port, p, 0);
   }
 #if defined(__AVR__)
   port = portOutputRegister(digitalPinToPort(p));

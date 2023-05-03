@@ -36,6 +36,9 @@
 #ifndef ADAFRUIT_NEOPIXEL_H
 #define ADAFRUIT_NEOPIXEL_H
 
+#include <zephyr/kernel.h>
+#include <arduino_common.h>
+
 #ifdef ARDUINO
 #if (ARDUINO >= 100)
 #include <Arduino.h>
@@ -216,9 +219,9 @@ class Adafruit_NeoPixel {
 
 public:
   // Constructor: number of LEDs, pin number, LED type
-  Adafruit_NeoPixel(uint16_t n, int16_t pin = 6,
+  Adafruit_NeoPixel(const struct device * _port, uint16_t n, int16_t pin = 6,
                     neoPixelType type = NEO_GRB + NEO_KHZ800);
-  Adafruit_NeoPixel(void);
+  Adafruit_NeoPixel(const struct device * _port);
   ~Adafruit_NeoPixel();
 
   void begin(void);
@@ -261,7 +264,8 @@ public:
     // stall for 30+ minutes, or having to document and frequently remind
     // and/or provide tech support explaining an unintuitive need for
     // show() calls at least once an hour.
-    uint32_t now = micros();
+    // uint32_t now = micros();
+    uint32_t now = k_uptime_get_32();
     if (endTime > now) {
       endTime = now;
     }
@@ -394,6 +398,7 @@ protected:
   uint8_t bOffset;    ///< Index of blue byte
   uint8_t wOffset;    ///< Index of white (==rOffset if no white)
   uint32_t endTime;   ///< Latch timing reference
+  const struct device * port;
 #ifdef __AVR__
   volatile uint8_t *port; ///< Output PORT register
   uint8_t pinMask;        ///< Output PORT bitmask
