@@ -23,9 +23,15 @@ extern "C" {
 
 #include <TM1637Display.h>
 
+#include <zephyr/kernel.h>
+#include <zephyr/device.h>
+#include <zephyr/drivers/gpio.h>
+
 #define TM1637_I2C_COMM1    0x40
 #define TM1637_I2C_COMM2    0xC0
 #define TM1637_I2C_COMM3    0x80
+
+static const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 
 //
 //      A
@@ -57,20 +63,21 @@ const uint8_t digitToSegment[] = {
 
 static const uint8_t minusSegments = 0b01000000;
 
-TM1637Display::TM1637Display(const struct device *_i2c_dev)
+TM1637Display::TM1637Display(uint8_t pinClk, uint8_t pinDIO, unsigned int bitDelay)
 {
-  i2c_dev = _i2c_dev;
-	// // Copy the pin numbers
-	// m_pinClk = pinClk;
-	// m_pinDIO = pinDIO;
-	// m_bitDelay = bitDelay;
+	// Copy the pin numbers
+	m_pinClk = pinClk;
+	m_pinDIO = pinDIO;
+	m_bitDelay = bitDelay;
 
-	// // Set the pin direction and default value.
-	// // Both pins are set as inputs, allowing the pull-up resistors to pull them up
-  //   pinMode(m_pinClk, INPUT);
-  //   pinMode(m_pinDIO,INPUT);
+	// Set the pin direction and default value.
+	// Both pins are set as inputs, allowing the pull-up resistors to pull them up
+    // pinMode(m_pinClk, INPUT);
+    // pinMode(m_pinDIO,INPUT);
 	// digitalWrite(m_pinClk, LOW);
 	// digitalWrite(m_pinDIO, LOW);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_INPUT | GPIO_PULL_UP);
+	gpio_pin_configure(gpio0, m_pinDIO, GPIO_INPUT | GPIO_PULL_UP);
 }
 
 void TM1637Display::setBrightness(uint8_t brightness, bool on)
@@ -80,29 +87,25 @@ void TM1637Display::setBrightness(uint8_t brightness, bool on)
 
 void TM1637Display::setSegments(const uint8_t segments[], uint8_t length, uint8_t pos)
 {
-  //   // Write COMM1
-	// start();
-	// writeByte(TM1637_I2C_COMM1);
-	// stop();
-  transferPacket(TM1637_I2C_COMM1);
+    // Write COMM1
+	start();
+	writeByte(TM1637_I2C_COMM1);
+	stop();
 
+	// Write COMM2 + first digit address
+	start();
+	writeByte(TM1637_I2C_COMM2 + (pos & 0x03));
 
-	// // Write COMM2 + first digit address
-	// start();
-	// writeByte(TM1637_I2C_COMM2 + (pos & 0x03));
+	// Write the data bytes
+	for (uint8_t k=0; k < length; k++)
+	  writeByte(segments[k]);
 
-	// // Write the data bytes
-	// for (uint8_t k=0; k < length; k++)
-	//   writeByte(segments[k]);
+	stop();
 
-	// stop();
-  transferPacket(TM1637_I2C_COMM2 + (pos & 0x07), (uint8_t*)segments, length);
-
-	// // Write COMM3 + brightness
-	// start();
-	// writeByte(TM1637_I2C_COMM3 + (m_brightness & 0x0f));
-	// stop();
-  transferPacket(TM1637_I2C_COMM3 + (m_brightness & 0x0f));
+	// Write COMM3 + brightness
+	start();
+	writeByte(TM1637_I2C_COMM3 + (m_brightness & 0x0f));
+	stop();
 }
 
 void TM1637Display::clear()
@@ -180,84 +183,86 @@ void TM1637Display::showNumberBaseEx(int8_t base, uint16_t num, uint8_t dots, bo
     setSegments(digits, length, pos);
 }
 
-int TM1637Display::transferPacket(int8_t command, uint8_t *buf, uint32_t num_bytes) {
-	struct i2c_msg msg;
-
-  if (command & 0x01) {
-    msg.flags = I2C_MSG_READ | I2C_MSG_STOP;
-  } else {
-    msg.flags = I2C_MSG_WRITE | I2C_MSG_STOP;
-  }
-	msg.buf = buf;
-	msg.len = num_bytes;
-	return i2c_transfer(i2c_dev, &msg, 1, command >> 1);
+void TM1637Display::bitDelay()
+{
+	// delayMicroseconds(m_bitDelay);
+	k_usleep(m_bitDelay);
 }
 
-// void TM1637Display::bitDelay()
-// {
-// 	delayMicroseconds(m_bitDelay);
-// }
-
-// void TM1637Display::start()
-// {
+void TM1637Display::start()
+{
 //   pinMode(m_pinDIO, OUTPUT);
-//   bitDelay();
-// }
+	gpio_pin_configure(gpio0, m_pinDIO, GPIO_OUTPUT);
+	bitDelay();
+}
 
-// void TM1637Display::stop()
-// {
-// 	pinMode(m_pinDIO, OUTPUT);
-// 	bitDelay();
-// 	pinMode(m_pinClk, INPUT);
-// 	bitDelay();
-// 	pinMode(m_pinDIO, INPUT);
-// 	bitDelay();
-// }
+void TM1637Display::stop()
+{
+	// pinMode(m_pinDIO, OUTPUT);
+	gpio_pin_configure(gpio0, m_pinDIO, GPIO_OUTPUT);
+	bitDelay();
+	// pinMode(m_pinClk, INPUT);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_INPUT);
+	bitDelay();
+	// pinMode(m_pinDIO, INPUT);
+	gpio_pin_configure(gpio0, m_pinDIO, GPIO_INPUT);
+	bitDelay();
+}
 
-// bool TM1637Display::writeByte(uint8_t b)
-// {
-//   uint8_t data = b;
+bool TM1637Display::writeByte(uint8_t b)
+{
+  uint8_t data = b;
 
-//   // 8 Data Bits
-//   for(uint8_t i = 0; i < 8; i++) {
-//     // CLK low
-//     pinMode(m_pinClk, OUTPUT);
-//     bitDelay();
+  // 8 Data Bits
+  for(uint8_t i = 0; i < 8; i++) {
+    // CLK low
+    // pinMode(m_pinClk, OUTPUT);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_OUTPUT);
+    bitDelay();
 
-// 	// Set data bit
-//     if (data & 0x01)
-//       pinMode(m_pinDIO, INPUT);
-//     else
-//       pinMode(m_pinDIO, OUTPUT);
+	// Set data bit
+    if (data & 0x01)
+    //   pinMode(m_pinDIO, INPUT);
+		gpio_pin_configure(gpio0, m_pinDIO, GPIO_INPUT);
+    else
+    //   pinMode(m_pinDIO, OUTPUT);
+		gpio_pin_configure(gpio0, m_pinDIO, GPIO_OUTPUT);
 
-//     bitDelay();
+    bitDelay();
 
-// 	// CLK high
-//     pinMode(m_pinClk, INPUT);
-//     bitDelay();
-//     data = data >> 1;
-//   }
+	// CLK high
+    // pinMode(m_pinClk, INPUT);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_INPUT);
+    bitDelay();
+    data = data >> 1;
+  }
 
-//   // Wait for acknowledge
-//   // CLK to zero
+  // Wait for acknowledge
+  // CLK to zero
 //   pinMode(m_pinClk, OUTPUT);
 //   pinMode(m_pinDIO, INPUT);
-//   bitDelay();
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_OUTPUT);
+	gpio_pin_configure(gpio0, m_pinDIO, GPIO_INPUT);
+	bitDelay();
 
-//   // CLK to high
-//   pinMode(m_pinClk, INPUT);
-//   bitDelay();
-//   uint8_t ack = digitalRead(m_pinDIO);
-//   if (ack == 0)
-//     pinMode(m_pinDIO, OUTPUT);
+	// CLK to high
+	// pinMode(m_pinClk, INPUT);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_INPUT);
+	bitDelay();
+	// uint8_t ack = digitalRead(m_pinDIO);
+	uint8_t ack = gpio_pin_get(gpio0, m_pinDIO);
+	if (ack == 0)
+		// pinMode(m_pinDIO, OUTPUT);
+		gpio_pin_configure(gpio0, m_pinDIO, GPIO_OUTPUT);
 
 
-//   bitDelay();
-//   pinMode(m_pinClk, OUTPUT);
-//   bitDelay();
+	bitDelay();
+	// pinMode(m_pinClk, OUTPUT);
+	gpio_pin_configure(gpio0, m_pinClk, GPIO_OUTPUT);
+	bitDelay();
 
-//   return ack;
-// }
+  	return ack;
+}
 
 void TM1637Display::showDots(uint8_t dots, uint8_t* digits)
 {

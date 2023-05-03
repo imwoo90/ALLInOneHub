@@ -14,6 +14,9 @@
 
 LOG_MODULE_REGISTER(main);
 
+
+#include <TM1637Display.h>
+
 int main(void)
 {
     int ret = usb_enable(NULL);
@@ -23,9 +26,14 @@ int main(void)
 
     LOG_INF("Start All in one hub");
 
+    TM1637Display _7segmentsX4(7, 8);
+    _7segmentsX4.setBrightness(0x0f);
 
+    int cnt = 0;
     while(true) {
-        LOG_INF("Test Loging");
+        LOG_INF("count %d", cnt);
+        _7segmentsX4.showNumberDecEx(cnt%10000, 0b01000000, true);
+        cnt += 1;
         k_msleep(1000);
     }
 
