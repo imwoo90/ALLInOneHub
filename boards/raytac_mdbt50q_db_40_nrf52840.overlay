@@ -4,7 +4,39 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- / {
+// /delete-node/ &uart1_default;
+// /delete-node/ &uart1_sleep;
+/delete-node/ &uart1;
+/delete-node/ &uart1_default;
+/delete-node/ &uart1_sleep;
+
+/delete-node/ &i2c1;
+/delete-node/ &i2c1_default;
+/delete-node/ &i2c1_sleep;
+
+// /delete-node/ &pwm_led0;
+// /delete-node/ &pwm0;
+// /delete-node/ &pwm0_default;
+// /delete-node/ &pwm0_sleep;
+
+/delete-node/ &spi0;
+/delete-node/ &spi0_default;
+/delete-node/ &spi0_sleep;
+
+/delete-node/ &spi1;
+/delete-node/ &spi1_default;
+/delete-node/ &spi1_sleep;
+
+/delete-node/ &spi2;
+/delete-node/ &spi2_default;
+/delete-node/ &spi2_sleep;
+
+/delete-node/ &qspi;
+/delete-node/ &qspi_default;
+/delete-node/ &qspi_sleep;
+
+
+/ {
 	chosen {
 		zephyr,console = &cdc_acm_uart0;
 		zephyr,shell-uart = &cdc_acm_uart0;

@@ -26,7 +26,7 @@ int main(void)
 
     LOG_INF("Start All in one hub");
 
-    TM1637Display _7segmentsX4(7, 8);
+    TM1637Display _7segmentsX4(20, 19);
     _7segmentsX4.setBrightness(0x0f);
 
     int cnt = 0;
