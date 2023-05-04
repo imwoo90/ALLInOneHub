@@ -23,7 +23,10 @@
 #define _RTCLIB_H_
 
 #include <Adafruit_I2CDevice.h>
-#include <Arduino.h>
+// #include <Arduino.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <WString.h>
 
 class TimeSpan;
 
@@ -350,7 +353,7 @@ protected:
 /**************************************************************************/
 class RTC_DS1307 : RTC_I2C {
 public:
-  bool begin(TwoWire *wireInstance = &Wire);
+  bool begin(const struct device * _i2c_dev);
   void adjust(const DateTime &dt);
   uint8_t isrunning(void);
   DateTime now();
@@ -369,7 +372,7 @@ public:
 /**************************************************************************/
 class RTC_DS3231 : RTC_I2C {
 public:
-  bool begin(TwoWire *wireInstance = &Wire);
+  bool begin(const struct device* _i2c_devnce);
   void adjust(const DateTime &dt);
   bool lostPower(void);
   DateTime now();
@@ -403,45 +406,45 @@ public:
     @brief  RTC based on the PCF8523 chip connected via I2C and the Wire library
 */
 /**************************************************************************/
-class RTC_PCF8523 : RTC_I2C {
-public:
-  bool begin(TwoWire *wireInstance = &Wire);
-  void adjust(const DateTime &dt);
-  bool lostPower(void);
-  bool initialized(void);
-  DateTime now();
-  void start(void);
-  void stop(void);
-  uint8_t isrunning();
-  Pcf8523SqwPinMode readSqwPinMode();
-  void writeSqwPinMode(Pcf8523SqwPinMode mode);
-  void enableSecondTimer(void);
-  void disableSecondTimer(void);
-  void enableCountdownTimer(PCF8523TimerClockFreq clkFreq, uint8_t numPeriods,
-                            uint8_t lowPulseWidth);
-  void enableCountdownTimer(PCF8523TimerClockFreq clkFreq, uint8_t numPeriods);
-  void disableCountdownTimer(void);
-  void deconfigureAllTimers(void);
-  void calibrate(Pcf8523OffsetMode mode, int8_t offset);
-};
+// class RTC_PCF8523 : RTC_I2C {
+// public:
+//   bool begin(TwoWire *wireInstance = &Wire);
+//   void adjust(const DateTime &dt);
+//   bool lostPower(void);
+//   bool initialized(void);
+//   DateTime now();
+//   void start(void);
+//   void stop(void);
+//   uint8_t isrunning();
+//   Pcf8523SqwPinMode readSqwPinMode();
+//   void writeSqwPinMode(Pcf8523SqwPinMode mode);
+//   void enableSecondTimer(void);
+//   void disableSecondTimer(void);
+//   void enableCountdownTimer(PCF8523TimerClockFreq clkFreq, uint8_t numPeriods,
+//                             uint8_t lowPulseWidth);
+//   void enableCountdownTimer(PCF8523TimerClockFreq clkFreq, uint8_t numPeriods);
+//   void disableCountdownTimer(void);
+//   void deconfigureAllTimers(void);
+//   void calibrate(Pcf8523OffsetMode mode, int8_t offset);
+// };
 
 /**************************************************************************/
 /*!
     @brief  RTC based on the PCF8563 chip connected via I2C and the Wire library
 */
 /**************************************************************************/
-class RTC_PCF8563 : RTC_I2C {
-public:
-  bool begin(TwoWire *wireInstance = &Wire);
-  bool lostPower(void);
-  void adjust(const DateTime &dt);
-  DateTime now();
-  void start(void);
-  void stop(void);
-  uint8_t isrunning();
-  Pcf8563SqwPinMode readSqwPinMode();
-  void writeSqwPinMode(Pcf8563SqwPinMode mode);
-};
+// class RTC_PCF8563 : RTC_I2C {
+// public:
+//   bool begin(TwoWire *wireInstance = &Wire);
+//   bool lostPower(void);
+//   void adjust(const DateTime &dt);
+//   DateTime now();
+//   void start(void);
+//   void stop(void);
+//   uint8_t isrunning();
+//   Pcf8563SqwPinMode readSqwPinMode();
+//   void writeSqwPinMode(Pcf8563SqwPinMode mode);
+// };
 
 /**************************************************************************/
 /*!

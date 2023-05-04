@@ -1,4 +1,6 @@
 #include "Adafruit_I2CDevice.h"
+#include <zephyr/device.h>
+#include <zephyr/drivers/i2c.h>
 
 //#define DEBUG_SERIAL Serial
 
@@ -7,9 +9,9 @@
  *    @param  addr The 7-bit I2C address for the device
  *    @param  theWire The I2C bus to use, defaults to &Wire
  */
-Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
+Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, const struct device * i2c_dev) {
   _addr = addr;
-  _wire = theWire;
+  _i2c_dev = i2c_dev;
   _begun = false;
 #ifdef ARDUINO_ARCH_SAMD
   _maxBufferSize = 250; // as defined in Wire.h's RingBuffer
@@ -28,7 +30,7 @@ Adafruit_I2CDevice::Adafruit_I2CDevice(uint8_t addr, TwoWire *theWire) {
  *    @return True if I2C initialized and a device with the addr found
  */
 bool Adafruit_I2CDevice::begin(bool addr_detect) {
-  _wire->begin();
+  // _wire->begin();
   _begun = true;
 
   if (addr_detect) {
@@ -49,7 +51,7 @@ void Adafruit_I2CDevice::end(void) {
 #if !(defined(ESP8266) ||                                                      \
       (defined(ARDUINO_ARCH_AVR) && !defined(WIRE_HAS_END)) ||                 \
       defined(ARDUINO_ARCH_ESP32))
-  _wire->end();
+  // _wire->end();
   _begun = false;
 #endif
 }
@@ -66,8 +68,9 @@ bool Adafruit_I2CDevice::detected(void) {
   }
 
   // A basic scanner, see if it ACK's
-  _wire->beginTransmission(_addr);
-  if (_wire->endTransmission() == 0) {
+  // _wire->beginTransmission(_addr);
+  // if (_wire->endTransmission() == 0) {
+  if (i2c_write(_i2c_dev, NULL, 0, _addr) == 0) {
 #ifdef DEBUG_SERIAL
     DEBUG_SERIAL.println(F("Detected"));
 #endif
@@ -105,64 +108,84 @@ bool Adafruit_I2CDevice::write(const uint8_t *buffer, size_t len, bool stop,
     return false;
   }
 
-  _wire->beginTransmission(_addr);
+//   _wire->beginTransmission(_addr);
 
-  // Write the prefix data (usually an address)
-  if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
-    if (_wire->write(prefix_buffer, prefix_len) != prefix_len) {
-#ifdef DEBUG_SERIAL
-      DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
-#endif
-      return false;
-    }
+//   // Write the prefix data (usually an address)
+//   if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
+//     if (_wire->write(prefix_buffer, prefix_len) != prefix_len) {
+// #ifdef DEBUG_SERIAL
+//       DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
+// #endif
+//       return false;
+//     }
+//   }
+
+//   // Write the data itself
+//   if (_wire->write(buffer, len) != len) {
+// #ifdef DEBUG_SERIAL
+//     DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
+// #endif
+//     return false;
+//   }
+
+// #ifdef DEBUG_SERIAL
+
+//   DEBUG_SERIAL.print(F("\tI2CWRITE @ 0x"));
+//   DEBUG_SERIAL.print(_addr, HEX);
+//   DEBUG_SERIAL.print(F(" :: "));
+//   if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
+//     for (uint16_t i = 0; i < prefix_len; i++) {
+//       DEBUG_SERIAL.print(F("0x"));
+//       DEBUG_SERIAL.print(prefix_buffer[i], HEX);
+//       DEBUG_SERIAL.print(F(", "));
+//     }
+//   }
+//   for (uint16_t i = 0; i < len; i++) {
+//     DEBUG_SERIAL.print(F("0x"));
+//     DEBUG_SERIAL.print(buffer[i], HEX);
+//     DEBUG_SERIAL.print(F(", "));
+//     if (i % 32 == 31) {
+//       DEBUG_SERIAL.println();
+//     }
+//   }
+
+//   if (stop) {
+//     DEBUG_SERIAL.print("\tSTOP");
+//   }
+// #endif
+
+//   if (_wire->endTransmission(stop) == 0) {
+// #ifdef DEBUG_SERIAL
+//     DEBUG_SERIAL.println();
+//     // DEBUG_SERIAL.println("Sent!");
+// #endif
+//     return true;
+//   } else {
+// #ifdef DEBUG_SERIAL
+//     DEBUG_SERIAL.println("\tFailed to send!");
+// #endif
+//     return false;
+//   }
+
+  uint32_t len_msg = 1;
+  struct i2c_msg msg[2];
+  if (prefix_buffer != nullptr) {
+    msg[0].buf = (uint8_t *)prefix_buffer;
+    msg[0].len = prefix_len;
+    msg[0].flags = I2C_MSG_WRITE;
+    len_msg += 1;
   }
 
-  // Write the data itself
-  if (_wire->write(buffer, len) != len) {
-#ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println(F("\tI2CDevice failed to write"));
-#endif
-    return false;
-  }
+	msg[1].buf = (uint8_t *)buffer;
+	msg[1].len = len;
+	msg[1].flags = I2C_MSG_WRITE;
+  if (stop)
+    msg[1].flags |= I2C_MSG_STOP;
 
-#ifdef DEBUG_SERIAL
-
-  DEBUG_SERIAL.print(F("\tI2CWRITE @ 0x"));
-  DEBUG_SERIAL.print(_addr, HEX);
-  DEBUG_SERIAL.print(F(" :: "));
-  if ((prefix_len != 0) && (prefix_buffer != nullptr)) {
-    for (uint16_t i = 0; i < prefix_len; i++) {
-      DEBUG_SERIAL.print(F("0x"));
-      DEBUG_SERIAL.print(prefix_buffer[i], HEX);
-      DEBUG_SERIAL.print(F(", "));
-    }
-  }
-  for (uint16_t i = 0; i < len; i++) {
-    DEBUG_SERIAL.print(F("0x"));
-    DEBUG_SERIAL.print(buffer[i], HEX);
-    DEBUG_SERIAL.print(F(", "));
-    if (i % 32 == 31) {
-      DEBUG_SERIAL.println();
-    }
-  }
-
-  if (stop) {
-    DEBUG_SERIAL.print("\tSTOP");
-  }
-#endif
-
-  if (_wire->endTransmission(stop) == 0) {
-#ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println();
-    // DEBUG_SERIAL.println("Sent!");
-#endif
+  if (i2c_transfer(_i2c_dev, &msg[2-len_msg], len_msg, _addr) == 0) {
     return true;
-  } else {
-#ifdef DEBUG_SERIAL
-    DEBUG_SERIAL.println("\tFailed to send!");
-#endif
-    return false;
   }
+  return false;
 }
 
 /*!
@@ -192,10 +215,10 @@ bool Adafruit_I2CDevice::_read(uint8_t *buffer, size_t len, bool stop) {
 #elif defined(ARDUINO_ARCH_MEGAAVR)
   size_t recv = _wire->requestFrom(_addr, len, stop);
 #else
-  size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len, (uint8_t)stop);
+  // size_t recv = _wire->requestFrom((uint8_t)_addr, (uint8_t)len, (uint8_t)stop);
 #endif
 
-  if (recv != len) {
+  if (i2c_read(_i2c_dev, buffer, len, _addr) < 0) {
     // Not enough data available to fulfill our obligation!
 #ifdef DEBUG_SERIAL
     DEBUG_SERIAL.print(F("\tI2CDevice did not receive enough data: "));
@@ -204,9 +227,9 @@ bool Adafruit_I2CDevice::_read(uint8_t *buffer, size_t len, bool stop) {
     return false;
   }
 
-  for (uint16_t i = 0; i < len; i++) {
-    buffer[i] = _wire->read();
-  }
+  // for (uint16_t i = 0; i < len; i++) {
+  //   buffer[i] = _wire->read();
+  // }
 
 #ifdef DEBUG_SERIAL
   DEBUG_SERIAL.print(F("\tI2CREAD  @ 0x"));
