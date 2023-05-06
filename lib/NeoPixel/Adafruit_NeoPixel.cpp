@@ -2159,6 +2159,7 @@ void Adafruit_NeoPixel::show(void) {
 #if defined(ARDUINO_NRF52_ADAFRUIT) || defined(ARDUINO_ARCH_NRF52840)
       yield();
 #endif
+      k_yield();
     }
 
     // Before leave we clear the flag for the event.
