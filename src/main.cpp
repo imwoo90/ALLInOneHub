@@ -31,13 +31,17 @@ void onAlarm(const struct device *dev, struct gpio_callback *cb, uint32_t pins)
 }
 
 void setup() {
+    _7segmentsX4 = new TM1637Display(20, 19);
+    _7segmentsX4->setBrightness(0x0f);
+    _7segmentsX4->showNumberDecEx(cnt, 0b01000000, true);
 
     // initializing the rtc
     if(!rtc.begin(DEVICE_DT_GET(DT_NODELABEL(i2c0)))) {
-        while (1) {
-            LOG_INF("Couldn't find RTC!");
-            k_msleep(1000);
-        }
+        // while (1) {
+        //     LOG_INF("Couldn't find RTC!");
+        //     k_msleep(1000);
+        // }
+        return;
     }
 
     if(rtc.lostPower()) {
@@ -77,9 +81,6 @@ void setup() {
         LOG_INF("Alarm will happen in 10 seconds!");
     }
 
-    _7segmentsX4 = new TM1637Display(20, 19);
-    _7segmentsX4->setBrightness(0x0f);
-    _7segmentsX4->showNumberDecEx(cnt, 0b01000000, true);
 }
 
 void loop() {
@@ -153,3 +154,50 @@ int main(void)
 
     return 0;
 }
+
+
+/*
+ * Copyright (c) 2018 Nordic Semiconductor ASA.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+#include <zephyr/init.h>
+#include <hal/nrf_power.h>
+
+static int board_nrf52840dongle_nrf52840_init(void)
+{
+
+	/* if the nrf52840dongle_nrf52840 board is powered from USB
+	 * (high voltage mode), GPIO output voltage is set to 1.8 volts by
+	 * default and that is not enough to turn the green and blue LEDs on.
+	 * Increase GPIO voltage to 3.0 volts.
+	 */
+	if ((nrf_power_mainregstatus_get(NRF_POWER) ==
+	     NRF_POWER_MAINREGSTATUS_HIGH) &&
+	    ((NRF_UICR->REGOUT0 & UICR_REGOUT0_VOUT_Msk) ==
+	     (UICR_REGOUT0_VOUT_DEFAULT << UICR_REGOUT0_VOUT_Pos))) {
+
+		NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Wen << NVMC_CONFIG_WEN_Pos;
+		while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
+			;
+		}
+
+		NRF_UICR->REGOUT0 =
+		    (NRF_UICR->REGOUT0 & ~((uint32_t)UICR_REGOUT0_VOUT_Msk)) |
+		    (UICR_REGOUT0_VOUT_3V3 << UICR_REGOUT0_VOUT_Pos);
+
+		NRF_NVMC->CONFIG = NVMC_CONFIG_WEN_Ren << NVMC_CONFIG_WEN_Pos;
+		while (NRF_NVMC->READY == NVMC_READY_READY_Busy) {
+			;
+		}
+
+		/* a reset is required for changes to take effect */
+		NVIC_SystemReset();
+	}
+
+	return 0;
+}
+
+SYS_INIT(board_nrf52840dongle_nrf52840_init, PRE_KERNEL_1,
+	 CONFIG_KERNEL_INIT_PRIORITY_DEFAULT);
