@@ -1,0 +1,9 @@
+mainmenu "App config"
+
+config SUPERFECT_PROTOCOL_BUF
+	int "Number of HCI command buffers"
+	default 256
+	help
+	  Number of buffers available for outgoing HCI commands from the Host.
+
+source "Kconfig.zephyr"
