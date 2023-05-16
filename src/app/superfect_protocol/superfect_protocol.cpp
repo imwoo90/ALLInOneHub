@@ -3,10 +3,13 @@
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/shell/shell.h>
 
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_REGISTER(Sprotocol);
+
+#define SUPERFECT_PROTOCOL_PRIORITY K_LOWEST_APPLICATION_THREAD_PRIO-1
 
 #define PACKET_START 0X02
 #define PACKET_END 0X03
@@ -103,40 +106,54 @@ static void superfectBackendHandler(void) {
     }
 }
 K_THREAD_DEFINE(superfect_protocol_backend, 512, superfectBackendHandler, NULL, NULL, NULL,
-		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+		SUPERFECT_PROTOCOL_PRIORITY, 0, 0);
 
 
-// static void superfectConfigHandler(void)
-// {
-//     const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
-//     superfect_uart_user_data _data;
-//     k_sem_init(&_data.sem, 0, 1);
-//     uart_irq_callback_user_data_set(config_uart, serialCallback, &_data);
-//     uart_irq_rx_enable(config_uart);
 
-//     while(k_sem_take(&_data.sem,  K_FOREVER) == 0) {
-//         switch(_data.fmt.command) {
-//         case TIME_SYNC:
-//             LOG_INF("TIME_SYNC %s", __func__);
-//             break;
-//         case POWER_MANAGEMENT:
-//             LOG_INF("POWER_MANAGEMENT %s", __func__);
-//             break;
-//         case COLOR_TABLE:
-//             LOG_INF("COLOR_TABLE %s", __func__);
-//             break;
-//         case ACK:
-//             LOG_INF("ACK %s", __func__);
-//             break;
-//         case POWEROFF_SCHEDULE:
-//             LOG_INF("POWEROFF_SCHEDULE %s", __func__);
-//             break;
-//         default:
-//             LOG_ERR("Unkwon command parse %s", __func__);
-//             break;
-//         }
-//         // LOG_INF("command %x, len %d, body %s", _data.fmt.command, _data.fmt.packet_length, _data.fmt.body.c_str());
-//     }
-// }
-// K_THREAD_DEFINE(superfect_protocol_config, 512, superfectConfigHandler, NULL, NULL, NULL,
-// 		K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+
+static void timeSync(std::string &time)
+{
+    std::string year = time.substr(0, 4);
+    std::string month = time.substr(4, 2);
+    std::string day = time.substr(6, 2);
+    std::string hour = time.substr(8, 2);
+    std::string minute = time.substr(10, 2);
+    std::string second = time.substr(12, 2);
+    std::string cmd = "date set " + year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second + "\n";
+    shell_execute_cmd(NULL, cmd.c_str());
+}
+
+static void superfectConfigHandler(void)
+{
+    const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
+    superfect_uart_user_data _data;
+    k_sem_init(&_data.sem, 0, 1);
+    uart_irq_callback_user_data_set(config_uart, serialCallback, &_data);
+    uart_irq_rx_enable(config_uart);
+
+    while(k_sem_take(&_data.sem,  K_FOREVER) == 0) {
+        switch(_data.fmt.command) {
+        case TIME_SYNC:
+            timeSync(_data.fmt.body);
+            break;
+        case POWER_MANAGEMENT:
+            LOG_INF("POWER_MANAGEMENT %s", __func__);
+            break;
+        case COLOR_TABLE:
+            LOG_INF("COLOR_TABLE %s", __func__);
+            break;
+        case ACK:
+            LOG_INF("ACK %s", __func__);
+            break;
+        case POWEROFF_SCHEDULE:
+            LOG_INF("POWEROFF_SCHEDULE %s", __func__);
+            break;
+        default:
+            LOG_ERR("Unkwon command parse %s", __func__);
+            break;
+        }
+        // LOG_INF("command %x, len %d, body %s", _data.fmt.command, _data.fmt.packet_length, _data.fmt.body.c_str());
+    }
+}
+K_THREAD_DEFINE(superfect_protocol_config, 2048, superfectConfigHandler, NULL, NULL, NULL,
+		SUPERFECT_PROTOCOL_PRIORITY, 0, 0);

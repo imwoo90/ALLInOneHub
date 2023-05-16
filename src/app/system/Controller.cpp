@@ -50,7 +50,7 @@ void Controller::putMessage(MessageType type, void* data, int delay_ms) {
 
 void Controller::setup() {
     button_init((const uint8_t[]){11, 12, 24, 25}, button_event_handler);
-    _fnd = new TM1637Display(20, 19);
+    _fnd = new TM1637Display(3, 4);
     _fnd->setBrightness(0x0f);
 
     k_msgq_init(&_q, _q_buffer, sizeof(Message), MAX_MSG_SIZE);
@@ -69,7 +69,7 @@ void Controller::eventHandler(Message &msg) {
     switch(msg.type) {
     case MSG_INITIAL:
         initialize();
-        putMessage(MSG_TEST, NULL);
+        putMessage(MSG_TIME_DISPLAY, NULL);
         break;
     case MSG_HUB_ON:
         _on_hub_power = true;

@@ -36,6 +36,8 @@
 #ifndef ADAFRUIT_NEOPIXEL_H
 #define ADAFRUIT_NEOPIXEL_H
 
+#define ARDUINO_ARCH_RP2040
+
 #include <zephyr/kernel.h>
 #include <arduino_common.h>
 
@@ -411,6 +413,7 @@ protected:
   PIO pio = pio0;
   int sm = 0;
   bool init = true;
+  uint32_t key;
 #endif
 };
 

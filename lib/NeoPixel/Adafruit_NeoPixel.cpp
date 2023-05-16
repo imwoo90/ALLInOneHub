@@ -49,15 +49,18 @@
 #include <time.h>
 #endif
 
+#if defined(ARDUINO_ARCH_RP2040) || defined(NRF52) || defined(NRF52_SERIES)
+#include <zephyr/drivers/gpio.h>
+#include <string.h>
+#include <ctype.h>
+#endif
+
 #if defined(NRF52) || defined(NRF52_SERIES)
 #include "nrf.h"
 
 // Interrupt is only disabled if there is no PWM device available
 // Note: Adafruit Bluefruit nrf52 does not use this option
 //#define NRF52_DISABLE_INT
-#include <zephyr/drivers/gpio.h>
-#include <string.h>
-#include <ctype.h>
 static const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
 #endif
 
@@ -296,7 +299,8 @@ void Adafruit_NeoPixel::show(void) {
     // NRF52 may use PWM + DMA (if available), may not need to disable interrupt
     // ESP32 may not disable interrupts because espShow() uses RMT which tries to acquire locks
 #if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
-  noInterrupts(); // Need 100% focus on instruction timing
+  // noInterrupts(); // Need 100% focus on instruction timing
+  key = irq_lock();
 #endif
 
 #if defined(__AVR__)
@@ -3048,7 +3052,8 @@ if(is800KHz) {
   // END ARCHITECTURE SELECT ------------------------------------------------
 
 #if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
-  interrupts();
+  // interrupts();
+  irq_unlock(key);
 #endif
 
   // endTime = micros(); // Save EOD time for latch on next call
