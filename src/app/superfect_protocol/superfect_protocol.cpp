@@ -6,8 +6,9 @@
 #include <zephyr/shell/shell.h>
 
 #include <zephyr/logging/log.h>
-
 LOG_MODULE_REGISTER(Sprotocol);
+
+#include <Controller.h>
 
 #define SUPERFECT_PROTOCOL_PRIORITY K_LOWEST_APPLICATION_THREAD_PRIO-1
 
@@ -93,7 +94,12 @@ static void superfectBackendHandler(void) {
             LOG_INF("COLOR_TABLE %s", __func__);
             break;
         case ACK:
-            LOG_INF("ACK %s", __func__);
+            if (_data.fmt.body[0] == 0x36) {
+                uint8_t body = 0x37;
+                superfectSend(backend_uart, ACK, &body, 1);
+            } else if (_data.fmt.body[0] == 0x00) {
+                Controller::getInstance()->putMessage(MSG_BACKEND_PING, NULL);
+            }
             break;
         case POWEROFF_SCHEDULE:
             LOG_INF("POWEROFF_SCHEDULE %s", __func__);
@@ -105,7 +111,7 @@ static void superfectBackendHandler(void) {
         // LOG_INF("command %x, len %d, body %s", _data.fmt.command, _data.fmt.packet_length, _data.fmt.body.c_str());
     }
 }
-K_THREAD_DEFINE(superfect_protocol_backend, 512, superfectBackendHandler, NULL, NULL, NULL,
+K_THREAD_DEFINE(superfect_protocol_backend, 1024, superfectBackendHandler, NULL, NULL, NULL,
 		SUPERFECT_PROTOCOL_PRIORITY, 0, 0);
 
 
@@ -143,7 +149,10 @@ static void superfectConfigHandler(void)
             LOG_INF("COLOR_TABLE %s", __func__);
             break;
         case ACK:
-            LOG_INF("ACK %s", __func__);
+            if (_data.fmt.body[0] == 0x36) {
+                uint8_t body = 0x38;
+                superfectSend(config_uart, ACK, &body, 1);
+            }
             break;
         case POWEROFF_SCHEDULE:
             LOG_INF("POWEROFF_SCHEDULE %s", __func__);

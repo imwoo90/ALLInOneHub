@@ -83,10 +83,6 @@ void Controller::eventHandler(Message &msg) {
         // power off hub
         // power led off
         break;
-    case MSG_TIMESYNC: // superfect_protocol에서 바로 처리하는게 좋을듯?
-        clock_settime(CLOCK_REALTIME, (timespec*)msg.data);
-        k_free(msg.data);
-        break;
     case MSG_TIME_DISPLAY:
         gettimeofday(&_tv, NULL);
         now = localtime(&_tv.tv_sec);
@@ -119,6 +115,7 @@ void Controller::eventHandler(Message &msg) {
         // rotate neopixel mode
         break;
     case MSG_BACKEND_PING:
+        LOG_INF("ping");
         // reschedule hub off work
         break;
     case MSG_TEST:
