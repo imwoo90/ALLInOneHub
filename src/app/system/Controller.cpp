@@ -50,7 +50,7 @@ void Controller::putMessage(MessageType type, void* data, int delay_ms) {
 
 void Controller::setup() {
     button_init((const uint8_t[]){11, 12, 24, 25}, button_event_handler);
-    _fnd = new TM1637Display(3, 4);
+    _fnd = new TM1637Display(CONFIG_FND_CLK_PIN, CONFIG_FND_DIO_PIN);
     _fnd->setBrightness(0x0f);
 
     k_msgq_init(&_q, _q_buffer, sizeof(Message), MAX_MSG_SIZE);

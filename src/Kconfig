@@ -1,9 +1,21 @@
 mainmenu "App config"
 
-config SUPERFECT_PROTOCOL_BUF
-	int "Number of HCI command buffers"
-	default 256
+config NEOPIXEL_PIN
+	int "Neopixel date pin"
+	default 2
 	help
-	  Number of buffers available for outgoing HCI commands from the Host.
+	  Neopixel data pin
+
+config FND_CLK_PIN
+	int "FND clock pin"
+	default 3
+	help
+	  FND clock pin
+
+config FND_DIO_PIN
+	int "FND data in out pin"
+	default 4
+	help
+	  FND data in out pin
 
 source "Kconfig.zephyr"
