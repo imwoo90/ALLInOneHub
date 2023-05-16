@@ -2,30 +2,26 @@
 
 ## build command 
 
-west build -p always -b raytac_mdbt50q_db_40_nrf52840
+west build -p always -b rpi_pico
 
 ## pin match
 ### LED
-* power 0.13
-* reserve 0.14
+* power 
+* reserve 
 
 ### Button
-* power 0.11
-* reserve up 0.12
-* reserve confirm 0.24
-* neopixel mode 25
+* power 
+* reserve up 
+* reserve confirm 
+* neopixel mode 
 
 ### FND
-* DIO 0.19
-* CLK 0.20
+* DIO 04
+* CLK 03
 
 ### Neopixel
-* Data pin 0.21
+* Data pin 02
 
 ### Uart to HID
-* RX 1.01
-* TX 1.02
-
-### Log
-* RX 0.08
-* TX 0.06
+* RX 
+* TX 
