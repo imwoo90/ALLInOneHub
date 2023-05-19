@@ -1,8 +1,5 @@
 
 #include <superfect_protocol.h>
-#include <zephyr/kernel.h>
-#include <zephyr/device.h>
-#include <zephyr/drivers/uart.h>
 #include <zephyr/shell/shell.h>
 
 #include <zephyr/logging/log.h>
@@ -62,21 +59,23 @@ void serialCallback(const struct device *dev, void *user_data) {
 }
 
 void superfectSend(const struct device *dev, CommandType cmd, uint8_t body[], uint32_t length) {
+    uint32_t i = 0;
     uint8_t* buf = (uint8_t*)k_malloc(7 + length);
-    buf[0] = PACKET_START;
-    buf[1] = cmd;
-    *(uint32_t*)&buf[2] = length;
-    uint32_t i = 6;
+    buf[i++] = PACKET_START;
+    buf[i++] = cmd;
+    buf[i++] = (length >> 24) & 0xff;
+    buf[i++] = (length >> 16) & 0xff;
+    buf[i++] = (length >> 8) & 0xff;
+    buf[i++] = length & 0xff;
     for (; i < 6 + length; i++)
         buf[i] = body[i - 6];
     buf[i] = PACKET_END;
-    for (i = 0; i < 7 + length; i++)
-        uart_poll_in(dev, &buf[i]);
+    uart_fifo_fill(dev, buf, 7+length);
     k_free(buf);
 }
 
+const struct device *backend_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart1));
 static void superfectBackendHandler(void) {
-    const struct device *backend_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart1));
     superfect_uart_user_data _data;
     k_sem_init(&_data.sem, 0, 1);
     uart_irq_callback_user_data_set(backend_uart, serialCallback, &_data);
@@ -98,7 +97,9 @@ static void superfectBackendHandler(void) {
                 uint8_t body = 0x37;
                 superfectSend(backend_uart, ACK, &body, 1);
             } else if (_data.fmt.body[0] == 0x00) {
+                uint8_t body = 0x00;
                 Controller::getInstance()->putMessage(MSG_BACKEND_PING, NULL);
+                superfectSend(backend_uart, ACK, &body, 1);
             }
             break;
         case POWEROFF_SCHEDULE:
@@ -111,7 +112,7 @@ static void superfectBackendHandler(void) {
         // LOG_INF("command %x, len %d, body %s", _data.fmt.command, _data.fmt.packet_length, _data.fmt.body.c_str());
     }
 }
-K_THREAD_DEFINE(superfect_protocol_backend, 1024, superfectBackendHandler, NULL, NULL, NULL,
+K_THREAD_DEFINE(superfect_protocol_backend, 2048, superfectBackendHandler, NULL, NULL, NULL,
 		SUPERFECT_PROTOCOL_PRIORITY, 0, 0);
 
 
@@ -129,9 +130,9 @@ static void timeSync(std::string &time)
     shell_execute_cmd(NULL, cmd.c_str());
 }
 
+const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
 static void superfectConfigHandler(void)
 {
-    const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
     superfect_uart_user_data _data;
     k_sem_init(&_data.sem, 0, 1);
     uart_irq_callback_user_data_set(config_uart, serialCallback, &_data);

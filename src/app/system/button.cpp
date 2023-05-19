@@ -24,7 +24,7 @@ static void button_interrupts(const struct device *dev, struct gpio_callback *cb
 {
     for(int type = 0; type < BUTTON_TYPE_MAX; type++) {
         if (pins & BIT(type_to_pin[type])) {
-            k_work_reschedule(&buttonWorks[type], K_MSEC(15));
+            k_work_reschedule(&buttonWorks[type], K_MSEC(100));
         }
     }
 }

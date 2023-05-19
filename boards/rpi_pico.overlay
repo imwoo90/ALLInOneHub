@@ -1,20 +1,8 @@
-/*
- * Copyright (c) 2021 Nordic Semiconductor ASA
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
-/delete-node/ &uart0;
-/delete-node/ &uart0_default;
-
 /delete-node/ &i2c0;
 /delete-node/ &i2c0_default;
 
 /delete-node/ &spi0;
 /delete-node/ &spi0_default;
-
-// /delete-node/ &adc;
-// /delete-node/ &adc_default;
 
 / {
 	chosen {
@@ -41,6 +29,10 @@
 			block-cycles = <512>;
 		};
 	};
+};
+
+&uart0 {
+	current-speed = <9600>;
 };
 
 &flash0 {
