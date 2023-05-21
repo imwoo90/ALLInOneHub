@@ -267,7 +267,7 @@ public:
     // and/or provide tech support explaining an unintuitive need for
     // show() calls at least once an hour.
     // uint32_t now = micros();
-    uint32_t now = k_uptime_get_32();
+    uint32_t now = k_ticks_to_us_floor32(k_uptime_ticks());
     if (endTime > now) {
       endTime = now;
     }

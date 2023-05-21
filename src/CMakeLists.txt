@@ -2,7 +2,7 @@ FILE(GLOB_RECURSE app_sources
     main.cpp
     app/superfect_protocol/*.c*
     app/system/*.c*
-    app/neopixel/*.c*
+    app/neopixel/superfect_neopixel.cpp
     # app/model/*.c*
     # app/view/*.c*
     # device/Relay/*.c*
