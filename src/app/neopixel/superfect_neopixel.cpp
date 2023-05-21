@@ -2,14 +2,16 @@
 
 #include <Adafruit_NeoPixel.h>
 #include <vector>
+#include <string>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(SN);
 
+#include <zephyr/shell/shell.h>
+
 class superfect_neopixel {
 private:
     int _direction;
-    uint8_t _begun;
     uint8_t _num_of_pixels;
     uint32_t _num_of_index;
     uint32_t _cycle; // LED color cycle (msec)
@@ -34,6 +36,7 @@ private:
 
     void calc_sector_size(void) {
         uint32_t nRGB = _rgbs.size();
+        _sector_size.clear();
         for(uint8_t n = 0; n < nRGB; n++) {
             _sector_size.push_back(rgb_idx2index(1+n) - rgb_idx2index(n));
         }
@@ -106,7 +109,6 @@ private:
 
 public:
     superfect_neopixel(const struct device * _port, uint16_t n, int16_t p, neoPixelType t) : _strip(_port, n, p, t) {
-        _begun = false;
         _num_of_pixels = n;
         _hz = 30;
         _priod = 1000/_hz;
@@ -114,6 +116,7 @@ public:
 
     void begin(void) {
         k_mutex_init(&_mutex);
+        _strip.begin();
     }
 
     //cycle(ms), diff(ms)
@@ -131,8 +134,6 @@ public:
         _priod = 1000/hz;
         _num_of_pixels = num_of_pixels;
         _num_of_index = (_cycle*_hz)/1000;
-        _cur_index.clear();
-        _cur_rgb_index.clear();
         _cur_index.assign(_num_of_pixels, 0);
         _cur_rgb_index.assign(_num_of_pixels, 0);
         for(uint32_t n = 0; n < _num_of_pixels; n++) {
@@ -145,7 +146,7 @@ public:
         k_mutex_unlock(&_mutex);
     }
 
-    void run(void) { 
+    void run(void) {
         uint32_t run_time;
         while(1) {
             run_time = k_uptime_get_32();
@@ -167,9 +168,15 @@ public:
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
 
+superfect_neopixel sn(DEVICE_DT_GET(DT_NODELABEL(gpio0)), 15, CONFIG_NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 static void neopixel_task(void) {
-    superfect_neopixel sn(DEVICE_DT_GET(DT_NODELABEL(gpio0)), 15, CONFIG_NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
     std::vector<uint32_t> rgbs = {
+        Adafruit_NeoPixel::Color(255, 0, 0),
+        Adafruit_NeoPixel::Color(0, 255, 0),
+        Adafruit_NeoPixel::Color(0, 0, 255),
+        Adafruit_NeoPixel::Color(255, 0, 0),
+        Adafruit_NeoPixel::Color(0, 255, 0),
+        Adafruit_NeoPixel::Color(0, 0, 255),
         Adafruit_NeoPixel::Color(255, 0, 0),
         Adafruit_NeoPixel::Color(0, 255, 0),
         Adafruit_NeoPixel::Color(0, 0, 255),
@@ -180,3 +187,98 @@ static void neopixel_task(void) {
 }
 K_THREAD_DEFINE(neopixel, 4096, neopixel_task, NULL, NULL, NULL,
         K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+
+
+std::vector<std::string> splitString(const std::string& input, char delimiter)
+{
+    std::vector<std::string> result;
+    std::string::size_type start = 0;
+    std::string::size_type end = input.find(delimiter);
+
+    while (end != std::string::npos)
+    {
+        result.push_back(input.substr(start, end - start));
+        start = end + 1;
+        end = input.find(delimiter, start);
+    }
+
+    result.push_back(input.substr(start));
+
+    return result;
+}
+
+std::vector<uint32_t> convertToRGBVector(const std::string& rgbString)
+{
+    std::vector<uint32_t> rgbVector;
+
+    if (rgbString.length() % 9 != 0)
+    {
+        return rgbVector;
+    }
+
+    for (std::size_t i = 0; i < rgbString.length(); i += 9)
+    {
+        std::string rgbValue = rgbString.substr(i, 9);
+        uint32_t value = 0;
+
+        for (int j = 0; j < 3; ++j)
+        {
+            std::string byteString = rgbValue.substr(j * 3, 3);
+            uint32_t byte = std::stoi(byteString);
+            value |= (byte << (16 - j * 8));
+        }
+        rgbVector.push_back(value);
+    }
+
+    return rgbVector;
+}
+
+static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
+{
+    std::string input = argv[1];
+    std::vector<std::string> tokens = splitString(input, ',');
+
+    if (tokens.size() != 6) {
+        shell_print(sh, "Invalid arguments");
+        return 0;
+    }
+
+    // save style
+    uint32_t num_of_rgb_list = std::stoi(tokens[1]);
+    std::vector<uint32_t> rgbs = convertToRGBVector(tokens[2]);
+    if (num_of_rgb_list != rgbs.size()) {
+        shell_print(sh, "Fail convertToRGBVector");
+        return 0;
+    }
+
+    uint8_t brightness = std::stoi(tokens[3]);
+    int cycle = std::stoi(tokens[4]);
+    uint32_t option = std::stoi(tokens[5]);
+
+    // Convert brightness
+    brightness = brightness * 10;
+    // Convert cycle
+    cycle = 15 - cycle;
+
+    // Convert option
+    int direction = 0;
+    if (option == 0) {
+        direction = 0;
+    } else if (option == 1) {
+        direction = -1;
+    } else if (option == 2) {
+        direction = 1;
+    } else if (option == 3) {
+        brightness = 0;
+    }
+
+    sn.configuration(rgbs, cycle*1000, (direction*cycle*1000)/15, 30, 15, brightness);
+	return 0;
+}
+
+SHELL_STATIC_SUBCMD_SET_CREATE(sub_neopixel,
+	SHELL_CMD(set, NULL, "style,nRGB,RGBs,brightness,cycle,option", cmd_neopixel_set),
+	SHELL_SUBCMD_SET_END /* Array terminated. */
+);
+
+SHELL_CMD_REGISTER(neopixel, &sub_neopixel, "Superfect Neopixel", NULL);

@@ -133,10 +133,12 @@ static void timeSync(std::string &time)
 const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
 static void superfectConfigHandler(void)
 {
+    std::string cmd_neopixel;
     superfect_uart_user_data _data;
     k_sem_init(&_data.sem, 0, 1);
     uart_irq_callback_user_data_set(config_uart, serialCallback, &_data);
     uart_irq_rx_enable(config_uart);
+
 
     while(k_sem_take(&_data.sem,  K_FOREVER) == 0) {
         switch(_data.fmt.command) {
@@ -147,7 +149,9 @@ static void superfectConfigHandler(void)
             LOG_INF("POWER_MANAGEMENT %s", __func__);
             break;
         case COLOR_TABLE:
-            LOG_INF("COLOR_TABLE %s", __func__);
+            cmd_neopixel = "neopixel set " + _data.fmt.body+'\n';
+            shell_execute_cmd(NULL, cmd_neopixel.c_str());
+            LOG_INF("COLOR_TABLE %s", cmd_neopixel.c_str());
             break;
         case ACK:
             if (_data.fmt.body[0] == 0x36) {

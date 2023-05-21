@@ -145,6 +145,10 @@ void Controller::eventHandler(Message &msg) {
         break;
     case MSG_BUTTON_RESERVE_CONFIRM:
         if (_set_reserve) {
+            if (_is_alive_backend) {
+                uint8_t cancel = 0x01;
+                superfectSend(backend_uart, POWER_MANAGEMENT, &cancel, 1);
+            }
             // send cancel command to the PC program 이거 지금 정의 안됨
             _set_reserve = false;
             gpio_pin_set(_port, CONFIG_LED_RESERVE_PIN, 0);
@@ -178,7 +182,7 @@ void Controller::eventHandler(Message &msg) {
         }
         _is_alive_backend = true;
         k_work_reschedule(&power_off_work, K_MINUTES(10)); // reschedule hub off work (10min)
-        k_work_reschedule(&backend_alive_work, K_SECONDS(1)); // reschedule backend alive work (1sec)
+        k_work_reschedule(&backend_alive_work, K_SECONDS(3)); // reschedule backend alive work (1sec)
         break;
     case MSG_TICK:
         putMessage(MSG_TIME_DISPLAY, NULL);
