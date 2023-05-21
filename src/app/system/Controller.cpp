@@ -77,7 +77,7 @@ void Controller::setup() {
     };
 
     _port = DEVICE_DT_GET(DT_NODELABEL(gpio0));
-    _uart2HID = DEVICE_DT_GET(DT_NODELABEL(uart0));
+    _uart2HID = DEVICE_DT_GET(DT_NODELABEL(uart1));
     button_init(_btn, button_event_handler);
     _fnd = new TM1637Display(CONFIG_FND_CLK_PIN, CONFIG_FND_DIO_PIN);
     _fnd->setBrightness(0x0f);

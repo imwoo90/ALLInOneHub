@@ -31,8 +31,11 @@
 	};
 };
 
-&uart0 {
+&uart1 {
 	current-speed = <9600>;
+	status = "okay";
+	pinctrl-0 = <&uart1_default>;
+	pinctrl-names = "default";
 };
 
 &flash0 {
@@ -77,18 +80,13 @@ zephyr_udc0: &usbd {
 };
 
 &pinctrl {
-	// i2c0_default: i2c0_default {
-	// 	group1 {
-	// 		psels = <NRF_PSEL(TWIM_SDA, 0, 22)>,
-	// 			<NRF_PSEL(TWIM_SCL, 0, 24)>;
-	// 	};
-	// };
-
-	// i2c0_sleep: i2c0_sleep {
-	// 	group1 {
-	// 		psels = <NRF_PSEL(TWIM_SDA, 0, 22)>,
-	// 			<NRF_PSEL(TWIM_SCL, 0, 24)>;
-	// 		low-power-enable;
-	// 	};
-	// };
+	uart1_default: uart1_default {
+		group1 {
+			pinmux = <UART1_TX_P8>;
+		};
+		group2 {
+			pinmux = <UART1_RX_P9>;
+			input-enable;
+		};
+	};
 };

@@ -2,7 +2,7 @@ mainmenu "App config"
 
 config NEOPIXEL_PIN
 	int "Neopixel date pin"
-	default 2
+	default 6
 	help
 	  Neopixel data pin
 
@@ -20,43 +20,43 @@ config FND_DIO_PIN
 
 config BTN_NEOPIXEL_MODE_PIN
 	int "Neopixel mode select button pin"
-	default 9
+	default 12
 	help
 	  Neopixel mode select pin
 
 config BTN_RESERVE_CONFIRM_PIN
 	int "Reserve confirm button pin"
-	default 10
+	default 13
 	help
 	  Reserve confirm button pin
 
 config BTN_RESERVE_UP_PIN
 	int "Reserve up button pin"
-	default 11
+	default 14
 	help
 	  Reserve up button pin
 
 config BTN_POWER_PIN
 	int "Power on/off button pin"
-	default 12
+	default 15
 	help
 	  Power on/off button pin
 
 config LED_USB_HUB_SW_PIN
 	int "Usb Hub power on/off control pin"
-	default 6
+	default 5
 	help
 	  Usb Hub power on/off control pin
 
 config LED_RESERVE_PIN
 	int "Reserve indication pin"
-	default 7
+	default 10
 	help
 	  Reserve indication pin
 
 config LED_POWER_PIN
 	int "Hub power indication pin"
-	default 8
+	default 11
 	help
 	  Hub power indication pin
 
