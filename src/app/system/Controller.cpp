@@ -23,6 +23,7 @@ K_WORK_DELAYABLE_DEFINE(reserve_cancel_work, reserve_cancel_work_handle);
 static void backend_alive_work_handle(struct k_work *work) {
     Controller *p = Controller::getInstance();
     p->_is_alive_backend = false;
+    p->putMessage(MSG_BLINK_POWER_LED, NULL);
 }
 K_WORK_DELAYABLE_DEFINE(backend_alive_work, backend_alive_work_handle);
 
@@ -107,14 +108,14 @@ void Controller::eventHandler(Message &msg) {
     case MSG_HUB_ON:
         _on_hub_power = true;
         gpio_pin_set(_port, CONFIG_LED_USB_HUB_SW_PIN, 1);
-        gpio_pin_set(_port, CONFIG_LED_POWER_PIN, 1);
+        putMessage(MSG_BLINK_POWER_LED, NULL);
         k_work_reschedule(&power_off_work, K_MINUTES(10)); // reschedule hub off work (10min)
         uart2HID(0x04); // send 'A' key_code data to the uart2HID
         break;
     case MSG_HUB_OFF:
         _on_hub_power = false;
         gpio_pin_set(_port, CONFIG_LED_USB_HUB_SW_PIN, 0);
-        gpio_pin_set(_port, CONFIG_LED_POWER_PIN, 0);
+        putMessage(MSG_BLINK_POWER_LED, NULL);
         break;
     case MSG_TIME_DISPLAY:
         gettimeofday(&_tv, NULL);
@@ -187,6 +188,20 @@ void Controller::eventHandler(Message &msg) {
     case MSG_TICK:
         putMessage(MSG_TIME_DISPLAY, NULL);
         putMessage(MSG_TICK, NULL, 1000);
+        break;
+    case MSG_BLINK_POWER_LED:
+        if (_on_hub_power) {
+            if (_is_alive_backend) {
+                gpio_pin_set(_port, CONFIG_LED_POWER_PIN, 1);
+            } else {
+                static int led = 0;
+                led = !led;
+                gpio_pin_set(_port, CONFIG_LED_POWER_PIN, led);
+                putMessage(MSG_BLINK_POWER_LED, NULL, 500);
+            }
+        } else {
+            gpio_pin_set(_port, CONFIG_LED_POWER_PIN, 0);
+        }
         break;
     case MSG_TEST:
         break;

@@ -24,6 +24,7 @@ typedef enum {
     MSG_BUTTON_NEOPIXEL_MODE,
     MSG_BACKEND_PING,
     MSG_TICK,
+    MSG_BLINK_POWER_LED,
     MSG_TEST,
 } MessageType;
 
