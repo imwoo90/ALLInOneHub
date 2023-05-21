@@ -4,6 +4,7 @@
 
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
+#include <zephyr/usb/class/usb_hid.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(CTRL);
@@ -219,6 +220,7 @@ void Controller::uart2HID(uint8_t key_code) {
     for (uint32_t i = 0; i < sizeof(packet); i++) {
         uart_poll_in(_uart2HID, &packet[i]);
     }
+    hid_int_ep_write(device_get_binding("HID_0"), packet, sizeof(packet), NULL);
     k_msleep(100);
 
     //key Release
@@ -229,6 +231,7 @@ void Controller::uart2HID(uint8_t key_code) {
     for (uint32_t i = 0; i < sizeof(packet); i++) {
         uart_poll_in(_uart2HID, &packet[i]);
     }
+    hid_int_ep_write(device_get_binding("HID_0"), packet, sizeof(packet), NULL);
 }
 
 void Controller::initialize() {
