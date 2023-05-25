@@ -32,8 +32,9 @@
  * the clock and data pins can be wired directly to the clk and data pins
  * of the PS2 connector.  No external parts are needed.
  */
-PS2dev::PS2dev(int clk, int data)
+PS2dev::PS2dev(const struct device *port, int clk, int data)
 {
+  _port = port;
   _ps2clk = clk;
   _ps2data = data;
   gohi(_ps2clk);
@@ -49,20 +50,20 @@ PS2dev::PS2dev(int clk, int data)
 void
 PS2dev::gohi(int pin)
 {
-  pinMode(pin, INPUT);
-  digitalWrite(pin, HIGH);
+  gpio_pin_configure(_port, pin, GPIO_INPUT);
+  gpio_pin_set(_port, pin, 1);
 }
 
 void
 PS2dev::golo(int pin)
 {
-  digitalWrite(pin, LOW);
-  pinMode(pin, OUTPUT);
+  gpio_pin_set(_port, pin, 0);
+  gpio_pin_configure(_port, pin, GPIO_OUTPUT);
 }
 
 int PS2dev::write(unsigned char data)
 {
-  delayMicroseconds(BYTEWAIT);
+  k_usleep(BYTEWAIT);
 
   unsigned char i;
   unsigned char parity = 1;
@@ -72,21 +73,21 @@ int PS2dev::write(unsigned char data)
   _PS2DBG.println(data,HEX);
 #endif
 
-  if (digitalRead(_ps2clk) == LOW) {
+  if (gpio_pin_get(_port, _ps2clk) == 0) {
     return -1;
   }
 
-  if (digitalRead(_ps2data) == LOW) {
+  if (gpio_pin_get(_port, _ps2data) == 0) {
     return -2;
   }
 
   golo(_ps2data);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   // device sends on falling clock
   golo(_ps2clk);	// start bit
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
 
   for (i=0; i < 8; i++)
     {
@@ -96,11 +97,11 @@ int PS2dev::write(unsigned char data)
       } else {
         golo(_ps2data);
       }
-      delayMicroseconds(CLKHALF);
+      k_usleep(CLKHALF);
       golo(_ps2clk);
-      delayMicroseconds(CLKFULL);
+      k_usleep(CLKFULL);
       gohi(_ps2clk);
-      delayMicroseconds(CLKHALF);
+      k_usleep(CLKHALF);
 
       parity = parity ^ (data & 0x01);
       data = data >> 1;
@@ -112,21 +113,21 @@ int PS2dev::write(unsigned char data)
   } else {
     golo(_ps2data);
   }
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
 
   // stop bit
   gohi(_ps2data);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
 
-  delayMicroseconds(BYTEWAIT);
+  k_usleep(BYTEWAIT);
 
 #ifdef _PS2DBG
   _PS2DBG.print(F("sent "));
@@ -137,8 +138,8 @@ int PS2dev::write(unsigned char data)
 }
 
 int PS2dev::available() {
-  //delayMicroseconds(BYTEWAIT);
-  return ( (digitalRead(_ps2data) == LOW) || (digitalRead(_ps2clk) == LOW) );
+  //k_usleep(BYTEWAIT);
+  return ( (gpio_pin_get(_port, _ps2data) == 0) || (gpio_pin_get(_port, _ps2clk) == 0) );
 }
 
 int PS2dev::read(unsigned char * value)
@@ -150,19 +151,19 @@ int PS2dev::read(unsigned char * value)
   unsigned char received_parity = 0;
 
   //wait for data line to go low and clock line to go high (or timeout)
-  unsigned long waiting_since = millis();
-  while((digitalRead(_ps2data) != LOW) || (digitalRead(_ps2clk) != HIGH)) {
-    if((millis() - waiting_since) > TIMEOUT) return -1;
+  unsigned long waiting_since = k_uptime_get_32();
+  while((gpio_pin_get(_port, _ps2data) != 0) || (gpio_pin_get(_port, _ps2clk) != 1)) {
+    if((k_uptime_get_32() - waiting_since) > TIMEOUT) return -1;
   }
 
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
 
   while (bit < 0x0100) {
-    if (digitalRead(_ps2data) == HIGH)
+    if (gpio_pin_get(_port, _ps2data) == 1)
       {
         data = data | bit;
         calculated_parity = calculated_parity ^ 1;
@@ -172,36 +173,36 @@ int PS2dev::read(unsigned char * value)
 
     bit = bit << 1;
 
-    delayMicroseconds(CLKHALF);
+    k_usleep(CLKHALF);
     golo(_ps2clk);
-    delayMicroseconds(CLKFULL);
+    k_usleep(CLKFULL);
     gohi(_ps2clk);
-    delayMicroseconds(CLKHALF);
+    k_usleep(CLKHALF);
 
   }
   // we do the delay at the end of the loop, so at this point we have
   // already done the delay for the parity bit
 
   // parity bit
-  if (digitalRead(_ps2data) == HIGH)
+  if (gpio_pin_get(_port, _ps2data) == 1)
     {
       received_parity = 1;
     }
 
   // stop bit
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
 
 
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   golo(_ps2data);
   golo(_ps2clk);
-  delayMicroseconds(CLKFULL);
+  k_usleep(CLKFULL);
   gohi(_ps2clk);
-  delayMicroseconds(CLKHALF);
+  k_usleep(CLKHALF);
   gohi(_ps2data);
 
 
@@ -227,7 +228,7 @@ int PS2dev::read(unsigned char * value)
 void PS2dev::keyboard_init()
 {
   while(write(0xAA)!=0);
-  delay(10);
+  k_msleep(10);
   return;
 }
 

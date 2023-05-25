@@ -9,12 +9,15 @@
 #ifndef ps2dev_h
 #define ps2dev_h
 
-#include "Arduino.h"
+// #include "Arduino.h"
+#include <zephyr/kernel.h>
+#include <zephyr/drivers/gpio.h>
+#include <arduino_common.h>
 
 class PS2dev
 {
 	public:
-		PS2dev(int clk, int data);
+		PS2dev(const struct device *port, int clk, int data);
 
 		// Enum containing all of the non-special keycodes/scancodes
 		// (if you can't find the scancode you're looking for here, check the special scancodes)
@@ -169,6 +172,7 @@ class PS2dev
 		int keyboard_mkbrk(unsigned char code);
 		int keyboard_special_mkbrk(unsigned char code);
 	private:
+		const struct device *_port;
 		int _ps2clk;
 		int _ps2data;
 		void golo(int pin);

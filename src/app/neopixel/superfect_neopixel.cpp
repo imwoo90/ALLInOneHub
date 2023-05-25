@@ -186,7 +186,7 @@ static void neopixel_task(void) {
     sn.run();
 }
 K_THREAD_DEFINE(neopixel, 4096, neopixel_task, NULL, NULL, NULL,
-        K_LOWEST_APPLICATION_THREAD_PRIO, 0, 0);
+        K_LOWEST_APPLICATION_THREAD_PRIO-2, 0, 0);
 
 
 std::vector<std::string> splitString(const std::string& input, char delimiter)

@@ -3,6 +3,7 @@ FILE(GLOB_RECURSE app_sources
     app/superfect_protocol/*.c*
     app/system/*.c*
     app/neopixel/superfect_neopixel.cpp
+    app/ps2_keyboard/ps2_keyboard.cpp
     # app/model/*.c*
     # app/view/*.c*
     # device/Relay/*.c*
