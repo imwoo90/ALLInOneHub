@@ -146,7 +146,7 @@ static void superfectConfigHandler(void)
             timeSync(_data.fmt.body);
             break;
         case POWER_MANAGEMENT:
-            LOG_INF("POWER_MANAGEMENT %s", __func__);
+            superfectSend(backend_uart, POWER_MANAGEMENT, (uint8_t*)_data.fmt.body.c_str(), _data.fmt.body.length());
             break;
         case COLOR_TABLE:
             cmd_neopixel = "neopixel set " + _data.fmt.body+'\n';

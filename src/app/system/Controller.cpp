@@ -2,6 +2,7 @@
 #include <button.h>
 #include <superfect_protocol.h>
 
+#include <zephyr/shell/shell.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
 #include <zephyr/usb/class/usb_hid.h>
@@ -176,7 +177,7 @@ void Controller::eventHandler(Message &msg) {
         putMessage(MSG_TIME_DISPLAY, NULL);
         break;
     case MSG_BUTTON_NEOPIXEL_MODE:
-        // rotate neopixel mode
+        shell_execute_cmd(NULL, "neopixel rotate_style");
         break;
     case MSG_BACKEND_PING:
         if (!_on_hub_power) {

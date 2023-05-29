@@ -1,14 +1,17 @@
-// #pragma once
-
 #include <Adafruit_NeoPixel.h>
 #include <vector>
 #include <string>
+#include <sys/stdio.h>
+#include <sys/fcntl.h>
+#include <sys/unistd.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(SN);
 
 #include <zephyr/shell/shell.h>
 
+#define STYLE_FILE_PATH "/root/styles"
+static void save_styles(struct k_work *work);
 class superfect_neopixel {
 private:
     int _direction;
@@ -108,6 +111,11 @@ private:
     }
 
 public:
+    k_work_delayable _save_style_work;
+    uint32_t _selected_style = -1;
+    uint32_t _start_save = false;
+    std::vector<std::string> _styles;
+
     superfect_neopixel(const struct device * _port, uint16_t n, int16_t p, neoPixelType t) : _strip(_port, n, p, t) {
         _num_of_pixels = n;
         _hz = 30;
@@ -117,6 +125,23 @@ public:
     void begin(void) {
         k_mutex_init(&_mutex);
         _strip.begin();
+        k_work_init_delayable(&_save_style_work, save_styles);
+        int fd = open(STYLE_FILE_PATH, O_RDONLY);
+        if (fd < 0) {
+            return;
+        }
+
+        char c;
+        std::string buf;
+        while(read(fd, &c, 1) > 0) {
+            if (c == 0) {
+                _styles.push_back(buf);
+                buf.clear();
+            }
+            buf.push_back(c);
+        }
+        close(fd);
+        _selected_style = _styles.size();
     }
 
     //cycle(ms), diff(ms)
@@ -170,7 +195,7 @@ public:
 
 superfect_neopixel sn(DEVICE_DT_GET(DT_NODELABEL(gpio0)), 15, CONFIG_NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 static void neopixel_task(void) {
-    std::vector<uint32_t> rgbs = {
+    std::vector<uint32_t> default_rgbs = {
         Adafruit_NeoPixel::Color(255, 0, 0),
         Adafruit_NeoPixel::Color(0, 255, 0),
         Adafruit_NeoPixel::Color(0, 0, 255),
@@ -182,7 +207,10 @@ static void neopixel_task(void) {
         Adafruit_NeoPixel::Color(0, 0, 255),
     };
     sn.begin();
-    sn.configuration(rgbs, 10*1000, 10*1000/15, 30, 15, 50);
+    sn.configuration(default_rgbs, 10*1000, 10*1000/15, 30, 15, 50);
+    if (sn._selected_style != (uint32_t)-1) {
+        sn.setBrightness(0);
+    }
     sn.run();
 }
 K_THREAD_DEFINE(neopixel, 4096, neopixel_task, NULL, NULL, NULL,
@@ -233,17 +261,61 @@ std::vector<uint32_t> convertToRGBVector(const std::string& rgbString)
     return rgbVector;
 }
 
-static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
+static void save_styles(struct k_work *work)
 {
-    std::string input = argv[1];
-    std::vector<std::string> tokens = splitString(input, ',');
+    unlink(STYLE_FILE_PATH);
+    int fd = open(STYLE_FILE_PATH, O_WRONLY | O_CREAT | O_TRUNC);
+    for (uint32_t i = 0; i < sn._styles.size(); i++) {
+        write(fd, sn._styles[i].c_str(), sn._styles[i].length()+1); // include null character
+    }
+    close(fd);
+    sn._start_save = false;
+    sn.setBrightness(0);
+    sn._selected_style = sn._styles.size();
+}
 
-    if (tokens.size() != 6) {
+static int cmd_save_neopixel_styles(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc > 2){
         shell_print(sh, "Invalid arguments");
         return 0;
     }
 
-    // save style
+    if (sn._start_save == false) {
+        sn._styles.clear();
+    }
+    sn._start_save = true;
+    sn._styles.push_back(argv[1]);
+    k_work_reschedule(&sn._save_style_work, K_MSEC(70));
+    return 0;
+}
+
+static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
+{
+    if (argc > 1){
+        shell_print(sh, "Invalid arguments");
+        return 0;
+    }
+
+    if (sn._styles.size() == 0){
+        shell_print(sh, "number of styles is 0");
+        return 0;
+    }
+
+    sn._selected_style += 1;
+    if (sn._styles.size() == sn._selected_style) {
+        sn.setBrightness(0);
+        return 0;
+    } else if (sn._styles.size() < sn._selected_style) {
+        sn._selected_style = 0;
+    }
+    std::vector<std::string> tokens = splitString(sn._styles[sn._selected_style], ',');
+
+    if (tokens.size() != 6) {
+        shell_print(sh, "Invalid style");
+        return 0;
+    }
+
     uint32_t num_of_rgb_list = std::stoi(tokens[1]);
     std::vector<uint32_t> rgbs = convertToRGBVector(tokens[2]);
     if (num_of_rgb_list != rgbs.size()) {
@@ -256,7 +328,7 @@ static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
     uint32_t option = std::stoi(tokens[5]);
 
     // Convert brightness
-    brightness = brightness * 10;
+    brightness = 50 + 150*(brightness-1)/9;
     // Convert cycle
     cycle = 15 - cycle;
 
@@ -277,7 +349,8 @@ static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
 }
 
 SHELL_STATIC_SUBCMD_SET_CREATE(sub_neopixel,
-	SHELL_CMD(set, NULL, "style,nRGB,RGBs,brightness,cycle,option", cmd_neopixel_set),
+    SHELL_CMD(set, NULL, "style,nRGB,RGBs,brightness,cycle,option", cmd_save_neopixel_styles),
+	SHELL_CMD(rotate_style, NULL, "style number", cmd_neopixel_set),
 	SHELL_SUBCMD_SET_END /* Array terminated. */
 );
 
