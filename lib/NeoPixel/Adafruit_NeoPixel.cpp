@@ -300,7 +300,7 @@ void Adafruit_NeoPixel::show(void) {
     // ESP32 may not disable interrupts because espShow() uses RMT which tries to acquire locks
 #if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
   // noInterrupts(); // Need 100% focus on instruction timing
-  key = irq_lock();
+  // key = irq_lock();
 #endif
 
 #if defined(__AVR__)
@@ -3053,11 +3053,11 @@ if(is800KHz) {
 
 #if !(defined(NRF52) || defined(NRF52_SERIES) || defined(ESP32))
   // interrupts();
-  irq_unlock(key);
+  // irq_unlock(key);
 #endif
 
   // endTime = micros(); // Save EOD time for latch on next call
-  endTime = k_uptime_get_32();
+  endTime = k_ticks_to_us_floor32(k_uptime_ticks());
 }
 
 /*!

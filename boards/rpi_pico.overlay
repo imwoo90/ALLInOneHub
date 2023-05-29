@@ -89,4 +89,9 @@ zephyr_udc0: &usbd {
 			input-enable;
 		};
 	};
+	uart0_default: uart0_default {
+		group2 {
+			bias-pull-up;
+		};
+	};
 };
