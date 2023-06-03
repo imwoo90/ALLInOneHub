@@ -5,7 +5,6 @@
 #include <zephyr/shell/shell.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/uart.h>
-#include <zephyr/usb/class/usb_hid.h>
 
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(CTRL);
@@ -134,6 +133,8 @@ void Controller::eventHandler(Message &msg) {
                 int str_time_len = sprintf(str_time, "%4d%02d%02d%02d%02d%02d", now->tm_year+1900, now->tm_mon+1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
                 LOG_INF("%s", str_time);
                 superfectSend(backend_uart, POWEROFF_SCHEDULE, (uint8_t*)str_time, str_time_len);
+            } else {
+                uart2HID(0x04); // send 'A' key_code data to the uart2HID
             }
         } else {
             putMessage(MSG_HUB_ON, NULL);
@@ -214,6 +215,12 @@ void Controller::eventHandler(Message &msg) {
 
 void Controller::uart2HID(uint8_t key_code) {
     uint8_t packet[8] = {0x00, 0x00, key_code, 0x00, 0x00, 0x00, 0x00, 0x00};
+    if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
+		if (_usb_status == USB_DC_SUSPEND) {
+			usb_wakeup_request();
+		}
+    }
+
     // Key press
     for (uint32_t i = 0; i < sizeof(packet); i++) {
         uart_poll_out(_uart2HID, packet[i]);

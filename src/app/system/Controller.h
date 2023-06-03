@@ -1,6 +1,9 @@
 #pragma once
 
 #include <zephyr/kernel.h>
+#include <zephyr/usb/usb_device.h>
+#include <zephyr/usb/class/usb_hid.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <errno.h>
@@ -52,6 +55,7 @@ private:
     void eventHandler(Message &msg);
     void uart2HID(uint8_t key_code);
 public:
+    usb_dc_status_code _usb_status;
     bool _is_alive_backend = false;
     
     static Controller* getInstance() {
