@@ -12,6 +12,7 @@
 #include <unistd.h>
 
 #include <TM1637Display.h>
+extern void ps2_keyboard_mkbrk(void);
 
 #define MAX_MSG_SIZE 256
 
@@ -40,7 +41,6 @@ class Controller {
 private:
     k_msgq _q;
     const struct device* _port;
-    const struct device* _uart2HID;
     char __aligned(4) _q_buffer[MAX_MSG_SIZE*sizeof(Message)];
 
     timeval _tv;
@@ -51,9 +51,8 @@ private:
 
     TM1637Display* _fnd;
 
-    void initialize();
     void eventHandler(Message &msg);
-    void uart2HID(uint8_t key_code);
+    void keyInput();
 public:
     usb_dc_status_code _usb_status;
     bool _is_alive_backend = false;

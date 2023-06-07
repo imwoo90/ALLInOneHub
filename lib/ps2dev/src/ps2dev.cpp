@@ -153,7 +153,9 @@ int PS2dev::read(unsigned char * value)
   //wait for data line to go low and clock line to go high (or timeout)
   unsigned long waiting_since = k_uptime_get_32();
   while((gpio_pin_get(_port, _ps2data) != 0) || (gpio_pin_get(_port, _ps2clk) != 1)) {
-    if((k_uptime_get_32() - waiting_since) > TIMEOUT) return -1;
+    if((k_uptime_get_32() - waiting_since) > TIMEOUT)
+      return -1;
+    k_msleep(5);  
   }
 
   k_usleep(CLKHALF);

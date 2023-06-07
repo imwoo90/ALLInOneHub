@@ -79,7 +79,6 @@ void Controller::setup() {
     };
 
     _port = DEVICE_DT_GET(DT_NODELABEL(gpio0));
-    _uart2HID = DEVICE_DT_GET(DT_NODELABEL(uart1));
     button_init(_btn, button_event_handler);
     _fnd = new TM1637Display(CONFIG_FND_CLK_PIN, CONFIG_FND_DIO_PIN);
     _fnd->setBrightness(0x0f);
@@ -103,7 +102,6 @@ void Controller::eventHandler(Message &msg) {
 
     switch(msg.type) {
     case MSG_INITIAL:
-        initialize();
         putMessage(MSG_TICK, NULL);
         break;
     case MSG_HUB_ON:
@@ -111,7 +109,7 @@ void Controller::eventHandler(Message &msg) {
         gpio_pin_set(_port, CONFIG_LED_USB_HUB_SW_PIN, 1);
         putMessage(MSG_BLINK_POWER_LED, NULL);
         k_work_reschedule(&power_off_work, K_MINUTES(10)); // reschedule hub off work (10min)
-        uart2HID(0x04); // send 'A' key_code data to the uart2HID
+        keyInput();
         break;
     case MSG_HUB_OFF:
         _on_hub_power = false;
@@ -134,7 +132,7 @@ void Controller::eventHandler(Message &msg) {
                 LOG_INF("%s", str_time);
                 superfectSend(backend_uart, POWEROFF_SCHEDULE, (uint8_t*)str_time, str_time_len);
             } else {
-                uart2HID(0x04); // send 'A' key_code data to the uart2HID
+                keyInput();
             }
         } else {
             putMessage(MSG_HUB_ON, NULL);
@@ -213,35 +211,20 @@ void Controller::eventHandler(Message &msg) {
     }
 }
 
-void Controller::uart2HID(uint8_t key_code) {
-    uint8_t packet[8] = {0x00, 0x00, key_code, 0x00, 0x00, 0x00, 0x00, 0x00};
-    if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
-		if (_usb_status == USB_DC_SUSPEND) {
-			usb_wakeup_request();
-		}
-    }
+void Controller::keyInput() {
+    ps2_keyboard_mkbrk();
 
-    // Key press
-    for (uint32_t i = 0; i < sizeof(packet); i++) {
-        uart_poll_out(_uart2HID, packet[i]);
-    }
-    for (uint32_t i = 0; i < sizeof(packet); i++) {
-        uart_poll_in(_uart2HID, &packet[i]);
+    uint8_t packet[8] = {0x00, 0x00, 0x04/*key code A*/, 0x00, 0x00, 0x00, 0x00, 0x00};
+    if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
+        if (_usb_status == USB_DC_SUSPEND) {
+            usb_wakeup_request();
+            return;
+        }
     }
     hid_int_ep_write(device_get_binding("HID_0"), packet, sizeof(packet), NULL);
     k_msleep(100);
-
     //key Release
     packet[2] = 0x00;
-    for (uint32_t i = 0; i < sizeof(packet); i++) {
-        uart_poll_out(_uart2HID, packet[i]);
-    }
-    for (uint32_t i = 0; i < sizeof(packet); i++) {
-        uart_poll_in(_uart2HID, &packet[i]);
-    }
     hid_int_ep_write(device_get_binding("HID_0"), packet, sizeof(packet), NULL);
 }
 
-void Controller::initialize() {
-    
-}
