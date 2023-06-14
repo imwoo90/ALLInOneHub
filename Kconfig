@@ -3,6 +3,30 @@
 
 mainmenu "Flower Vending Machine"
 
-rsource "src/Kconfig"
+config HUB_OFF_TIMEOUT
+	int "USB hub off timeout"
+	default 600
+	help
+	    Timeout to turn off hub power when there is no ping (Unit: seconds)
 
-# source "Kconfig.zephyr"
+config HUB_POWER_LED_BLANK_TIME
+    int "USB hub power led blank time"
+    default 500
+    help
+        USB hub power led blank time when loss ping (Unit: milliseconds)
+
+config PING_LOSS_DECISION_TIMEOUT
+    int "Ping loss decision timeout"
+    default 3
+    help
+        Ping loss decision timeout (Unit: seconds)
+
+config POWER_OFF_SETTING_TIMEOUT
+    int "power off setting timeout"
+    default 5
+    help
+        Timeout that automatically comes out of the setting mode 
+        when there is no operation when setting the power off schedule
+        (Unit: seconds)
+
+rsource "src/Kconfig"

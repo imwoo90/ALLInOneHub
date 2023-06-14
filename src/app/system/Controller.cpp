@@ -108,7 +108,7 @@ void Controller::eventHandler(Message &msg) {
         _on_hub_power = true;
         gpio_pin_set(_port, CONFIG_LED_USB_HUB_SW_PIN, 1);
         putMessage(MSG_BLINK_POWER_LED, NULL);
-        k_work_reschedule(&power_off_work, K_MINUTES(10)); // reschedule hub off work (10min)
+        k_work_reschedule(&power_off_work, K_SECONDS(CONFIG_HUB_OFF_TIMEOUT)); // reschedule hub off work (10min)
         keyInput();
         break;
     case MSG_HUB_OFF:
@@ -141,7 +141,7 @@ void Controller::eventHandler(Message &msg) {
     case MSG_BUTTON_RESERVE_UP:
         if (!_set_reserve) {
             _reserve_count += 1;
-            k_work_reschedule(&reserve_cancel_work, K_SECONDS(5));
+            k_work_reschedule(&reserve_cancel_work, K_SECONDS(CONFIG_POWER_OFF_SETTING_TIMEOUT));
             putMessage(MSG_TIME_DISPLAY, NULL);
         }
         break;
@@ -183,8 +183,8 @@ void Controller::eventHandler(Message &msg) {
             putMessage(MSG_HUB_ON, NULL);
         }
         _is_alive_backend = true;
-        k_work_reschedule(&power_off_work, K_MINUTES(10)); // reschedule hub off work (10min)
-        k_work_reschedule(&backend_alive_work, K_SECONDS(3)); // reschedule backend alive work (1sec)
+        k_work_reschedule(&power_off_work, K_SECONDS(CONFIG_HUB_OFF_TIMEOUT)); // reschedule hub off work (10min)
+        k_work_reschedule(&backend_alive_work, K_SECONDS(CONFIG_PING_LOSS_DECISION_TIMEOUT)); // reschedule backend alive work (3sec)
         break;
     case MSG_TICK:
         putMessage(MSG_TIME_DISPLAY, NULL);
@@ -198,7 +198,7 @@ void Controller::eventHandler(Message &msg) {
                 static int led = 0;
                 led = !led;
                 gpio_pin_set(_port, CONFIG_LED_POWER_PIN, led);
-                putMessage(MSG_BLINK_POWER_LED, NULL, 500);
+                putMessage(MSG_BLINK_POWER_LED, NULL, CONFIG_HUB_POWER_LED_BLANK_TIME);
             }
         } else {
             gpio_pin_set(_port, CONFIG_LED_POWER_PIN, 0);

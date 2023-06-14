@@ -60,4 +60,22 @@ config LED_POWER_PIN
 	help
 	  Hub power indication pin
 
+config PS2_KEYBOARD_CLK
+	int "ps/2 keyboard clk pin"
+	default 16
+	help
+	  ps/2 keyboard clk pin
+
+config PS2_KEYBOARD_DIO
+	int "ps/2 keyboard clk pin"
+	default 17
+	help
+	  ps/2 keyboard clk pin
+
+config PS2_KEYBOARD_PWR
+	int "ps/2 keyboard clk pin"
+	default 18
+	help
+	  ps/2 keyboard clk pin
+
 source "Kconfig.zephyr"

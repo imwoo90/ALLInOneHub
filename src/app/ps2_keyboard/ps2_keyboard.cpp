@@ -19,8 +19,8 @@ void ps2_keyboard_mkbrk(void) {
 
 static void ps2_keyboard_task(void) {
     const struct device *gpio0 = DEVICE_DT_GET(DT_NODELABEL(gpio0));
-    g_keyboard = new PS2dev(gpio0, 16,17);
-    gpio_pin_configure(gpio0, 18, GPIO_INPUT | GPIO_PULL_DOWN);
+    g_keyboard = new PS2dev(gpio0, CONFIG_PS2_KEYBOARD_CLK, CONFIG_PS2_KEYBOARD_DIO);
+    gpio_pin_configure(gpio0, CONFIG_PS2_KEYBOARD_PWR, GPIO_INPUT | GPIO_PULL_DOWN);
 
     while(true) {
         if (gpio_pin_get(gpio0, 18) == 0) {
