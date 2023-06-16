@@ -25,7 +25,7 @@ static void backend_alive_work_handle(struct k_work *work) {
     Controller *p = Controller::getInstance();
     p->_is_alive_backend = false;
     p->putMessage(MSG_BLINK_POWER_LED, NULL);
-    gpio_pin_set(_port, CONFIG_LED_RESERVE_PIN, 0);
+    gpio_pin_set(p->_port, CONFIG_LED_RESERVE_PIN, 0);
 }
 K_WORK_DELAYABLE_DEFINE(backend_alive_work, backend_alive_work_handle);
 

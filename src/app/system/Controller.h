@@ -40,7 +40,6 @@ struct Message {
 class Controller {
 private:
     k_msgq _q;
-    const struct device* _port;
     char __aligned(4) _q_buffer[MAX_MSG_SIZE*sizeof(Message)];
 
     timeval _tv;
@@ -54,6 +53,7 @@ private:
     void eventHandler(Message &msg);
     void keyInput();
 public:
+    const struct device* _port;
     usb_dc_status_code _usb_status;
     bool _is_alive_backend = false;
     
