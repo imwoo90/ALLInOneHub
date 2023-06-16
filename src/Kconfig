@@ -62,13 +62,13 @@ config LED_POWER_PIN
 
 config PS2_KEYBOARD_CLK
 	int "ps/2 keyboard clk pin"
-	default 16
+	default 17
 	help
 	  ps/2 keyboard clk pin
 
 config PS2_KEYBOARD_DIO
 	int "ps/2 keyboard clk pin"
-	default 17
+	default 16
 	help
 	  ps/2 keyboard clk pin
 
