@@ -5,7 +5,7 @@ mainmenu "Flower Vending Machine"
 
 config HUB_OFF_TIMEOUT
 	int "USB hub off timeout"
-	default 600
+	default 1200
 	help
 	    Timeout to turn off hub power when there is no ping (Unit: seconds)
 
@@ -23,7 +23,7 @@ config PING_LOSS_DECISION_TIMEOUT
 
 config POWER_OFF_SETTING_TIMEOUT
     int "power off setting timeout"
-    default 5
+    default 3
     help
         Timeout that automatically comes out of the setting mode 
         when there is no operation when setting the power off schedule
