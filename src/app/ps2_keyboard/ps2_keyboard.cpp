@@ -9,9 +9,6 @@ static uint8_t g_read_leds = false;
 static PS2dev* g_keyboard = NULL;
 
 void ps2_keyboard_mkbrk(void) {
-    if (!g_read_leds)
-        return;
-
     k_mutex_lock(&ps2dev_mutex, K_FOREVER);
     g_keyboard->keyboard_mkbrk(PS2dev::A);
     k_mutex_unlock(&ps2dev_mutex);

@@ -7,6 +7,18 @@ LOG_MODULE_REGISTER(Sprotocol);
 
 #include <Controller.h>
 
+static void timeSync(std::string &time)
+{
+    std::string year = time.substr(0, 4);
+    std::string month = time.substr(4, 2);
+    std::string day = time.substr(6, 2);
+    std::string hour = time.substr(8, 2);
+    std::string minute = time.substr(10, 2);
+    std::string second = time.substr(12, 2);
+    std::string cmd = "date set " + year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second + "\n";
+    shell_execute_cmd(NULL, cmd.c_str());
+}
+
 #define SUPERFECT_PROTOCOL_PRIORITY K_LOWEST_APPLICATION_THREAD_PRIO-4
 
 #define PACKET_START 0X02
@@ -84,7 +96,7 @@ static void superfectBackendHandler(void) {
     while(k_sem_take(&_data.sem,  K_FOREVER) == 0) {
         switch(_data.fmt.command) {
         case TIME_SYNC:
-            LOG_INF("TIME_SYNC %s", __func__);
+            timeSync(_data.fmt.body);
             break;
         case POWER_MANAGEMENT:
             LOG_INF("POWER_MANAGEMENT %s", __func__);
@@ -116,19 +128,7 @@ K_THREAD_DEFINE(superfect_protocol_backend, 2048, superfectBackendHandler, NULL,
 		SUPERFECT_PROTOCOL_PRIORITY, 0, 0);
 
 
-
-
-static void timeSync(std::string &time)
-{
-    std::string year = time.substr(0, 4);
-    std::string month = time.substr(4, 2);
-    std::string day = time.substr(6, 2);
-    std::string hour = time.substr(8, 2);
-    std::string minute = time.substr(10, 2);
-    std::string second = time.substr(12, 2);
-    std::string cmd = "date set " + year + "-" + month + "-" + day + " " + hour + ":" + minute + ":" + second + "\n";
-    shell_execute_cmd(NULL, cmd.c_str());
-}
+//////////////////////////////////////////////////////////////////////////////////////
 
 const struct device *config_uart = DEVICE_DT_GET(DT_NODELABEL(cdc_acm_uart2));
 static void superfectConfigHandler(void)
