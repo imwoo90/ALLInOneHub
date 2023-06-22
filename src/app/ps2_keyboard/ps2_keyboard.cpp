@@ -20,13 +20,13 @@ static void ps2_keyboard_task(void) {
     gpio_pin_configure(gpio0, CONFIG_PS2_KEYBOARD_PWR, GPIO_INPUT);
 
     while(true) {
-        if (gpio_pin_get(gpio0, 18) == 0) {
+        if (gpio_pin_get(gpio0, CONFIG_PS2_KEYBOARD_PWR) == 0) {
             g_read_leds = false;
             k_msleep(100);
             continue;
         }
         k_msleep(10);
-        if(gpio_pin_get(gpio0, 18) == 0) {
+        if(gpio_pin_get(gpio0, CONFIG_PS2_KEYBOARD_PWR) == 0) {
             continue;
         }
 

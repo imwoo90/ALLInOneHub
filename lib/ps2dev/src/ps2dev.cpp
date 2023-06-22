@@ -82,12 +82,12 @@ int PS2dev::write(unsigned char data)
   }
 
   golo(_ps2data);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   // device sends on falling clock
   golo(_ps2clk);	// start bit
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
 
   for (i=0; i < 8; i++)
     {
@@ -97,11 +97,11 @@ int PS2dev::write(unsigned char data)
       } else {
         golo(_ps2data);
       }
-      k_usleep(CLKHALF);
+      k_busy_wait(CLKHALF);
       golo(_ps2clk);
-      k_usleep(CLKFULL);
+      k_busy_wait(CLKFULL);
       gohi(_ps2clk);
-      k_usleep(CLKHALF);
+      k_busy_wait(CLKHALF);
 
       parity = parity ^ (data & 0x01);
       data = data >> 1;
@@ -113,19 +113,19 @@ int PS2dev::write(unsigned char data)
   } else {
     golo(_ps2data);
   }
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   golo(_ps2clk);
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
 
   // stop bit
   gohi(_ps2data);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   golo(_ps2clk);
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
 
   k_usleep(BYTEWAIT);
 
@@ -158,11 +158,11 @@ int PS2dev::read(unsigned char * value)
     k_msleep(5);  
   }
 
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   golo(_ps2clk);
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
 
   while (bit < 0x0100) {
     if (gpio_pin_get(_port, _ps2data) == 1)
@@ -175,11 +175,11 @@ int PS2dev::read(unsigned char * value)
 
     bit = bit << 1;
 
-    k_usleep(CLKHALF);
+    k_busy_wait(CLKHALF);
     golo(_ps2clk);
-    k_usleep(CLKFULL);
+    k_busy_wait(CLKFULL);
     gohi(_ps2clk);
-    k_usleep(CLKHALF);
+    k_busy_wait(CLKHALF);
 
   }
   // we do the delay at the end of the loop, so at this point we have
@@ -192,19 +192,19 @@ int PS2dev::read(unsigned char * value)
     }
 
   // stop bit
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   golo(_ps2clk);
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
 
 
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   golo(_ps2data);
   golo(_ps2clk);
-  k_usleep(CLKFULL);
+  k_busy_wait(CLKFULL);
   gohi(_ps2clk);
-  k_usleep(CLKHALF);
+  k_busy_wait(CLKHALF);
   gohi(_ps2data);
 
 
