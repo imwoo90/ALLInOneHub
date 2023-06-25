@@ -88,12 +88,12 @@ private:
                     _cur_index[n] = _num_of_index;
                     _cur_rgb_index[n] = _rgbs.size();
                 }
-            }            
+            }
             _cur_index[n] += _direction;
             if (_direction < 0) {
                 if (_cur_index[n]+1 == rgb_idx2index(_cur_rgb_index[n])) {
                     _cur_rgb_index[n] += _direction;
-                }          
+                }
             } else {
                 if (_cur_index[n] == rgb_idx2index(_cur_rgb_index[n]+_direction)) {
                     _cur_rgb_index[n] += _direction;
@@ -330,18 +330,16 @@ static int cmd_neopixel_set(const struct shell *sh, size_t argc, char **argv)
     // Convert brightness
     brightness = 50 + 150*(brightness-1)/9;
     // Convert cycle
-    cycle = 15 - cycle;
+    cycle = 11 - cycle;
 
     // Convert option
     int direction = 0;
-    if (option == 0) {
+    if (option == 0 || option == 3) {
         direction = 0;
     } else if (option == 1) {
         direction = -1;
     } else if (option == 2) {
         direction = 1;
-    } else if (option == 3) {
-        brightness = 0;
     }
 
     sn.configuration(rgbs, cycle*1000, (direction*cycle*1000)/15, 30, 15, brightness);
