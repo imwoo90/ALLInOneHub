@@ -78,4 +78,16 @@ config PS2_KEYBOARD_PWR
 	help
 	  ps/2 keyboard clk pin
 
+config PS2_KEYBOARD_KEYCODE
+	hex "ps/2 keyboard key code"
+	default 0x5f
+	help
+	  ps/2 keyboard clk pin
+
+config HID_KEYBOARD_KEYCODE
+	hex "HID keyboard key code"
+	default 0x73
+	help
+	  ps/2 keyboard clk pin
+
 source "Kconfig.zephyr"

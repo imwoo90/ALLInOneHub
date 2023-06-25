@@ -10,7 +10,7 @@ static PS2dev* g_keyboard = NULL;
 
 void ps2_keyboard_mkbrk(void) {
     k_mutex_lock(&ps2dev_mutex, K_FOREVER);
-    g_keyboard->keyboard_mkbrk(PS2dev::A);
+    g_keyboard->keyboard_mkbrk(CONFIG_PS2_KEYBOARD_KEYCODE);
     k_mutex_unlock(&ps2dev_mutex);
 }
 

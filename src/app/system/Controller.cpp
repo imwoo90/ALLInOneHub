@@ -66,7 +66,7 @@ static void putMessageCallback( struct k_work *work ) {
 void Controller::putMessage(MessageType type, void* data, int delay_ms) {
     MessageCallbackData *p = new MessageCallbackData();
     p->work = Z_WORK_DELAYABLE_INITIALIZER(putMessageCallback);
-    p->q = &_q; 
+    p->q = &_q;
     p->msg.type = type; p->msg.data = data;
     k_work_schedule(&p->work, K_MSEC(delay_ms));
 }
@@ -215,7 +215,7 @@ void Controller::eventHandler(Message &msg) {
 void Controller::keyInput() {
     ps2_keyboard_mkbrk();
 
-    uint8_t packet[8] = {0x00, 0x00, 0x04/*key code A*/, 0x00, 0x00, 0x00, 0x00, 0x00};
+    uint8_t packet[8] = {0x00, 0x00, CONFIG_HID_KEYBOARD_KEYCODE, 0x00, 0x00, 0x00, 0x00, 0x00};
     if (IS_ENABLED(CONFIG_USB_DEVICE_REMOTE_WAKEUP)) {
         if (_usb_status == USB_DC_SUSPEND) {
             usb_wakeup_request();
