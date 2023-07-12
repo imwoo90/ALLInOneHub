@@ -80,13 +80,13 @@ config PS2_KEYBOARD_PWR
 
 config PS2_KEYBOARD_KEYCODE
 	hex "ps/2 keyboard key code"
-	default 0x5f
+	default 0x76
 	help
 	  ps/2 keyboard clk pin
 
 config HID_KEYBOARD_KEYCODE
 	hex "HID keyboard key code"
-	default 0x73
+	default 0x29
 	help
 	  ps/2 keyboard clk pin
 

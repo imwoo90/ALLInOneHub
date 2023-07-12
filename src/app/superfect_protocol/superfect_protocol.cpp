@@ -9,6 +9,11 @@ LOG_MODULE_REGISTER(Sprotocol);
 
 static void timeSync(std::string &time)
 {
+    if (time.size() != 14) {
+        LOG_WRN("a weird time data");
+        return;
+    }
+
     std::string year = time.substr(0, 4);
     std::string month = time.substr(4, 2);
     std::string day = time.substr(6, 2);
@@ -54,6 +59,11 @@ void serialCallback(const struct device *dev, void *user_data) {
     fmt.command = (CommandType)c;
 
     uart_fifo_read(dev, (uint8_t*)&fmt.packet_length, 4);
+    if (fmt.packet_length == 0) {
+        while (uart_fifo_read(dev, &c, 1) == 1); /* read until FIFO empty */
+        LOG_WRN("Unexpected packet_length[%d]", fmt.packet_length);
+        return;
+    }
     for (uint32_t i = 0; i < fmt.packet_length; i++) {
         uart_fifo_read(dev, &c, 1);
         fmt.body.push_back(c);
